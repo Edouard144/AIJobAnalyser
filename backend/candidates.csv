@@ -1,0 +1,3 @@
+full_name,email,phone,skills,experience_years,education_level,current_position,resume_url
+Carol Ineza,carol@test.com,+250780000001,"React,Node.js,TypeScript",4,Masters,Fullstack Dev,https://cv.io/carol
+David Nkusi,david@test.com,+250780000002,"React,Redux",1,Bachelors,Junior Dev,https://cv.io/david

@@ -4,7 +4,8 @@ import helmet from "helmet";
 import { env } from "./config/env";
 import { errorMiddleware } from "./middleware/error.middleware";
 import authRoutes from "./modules/auth/auth.routes";
-import jobRoutes from "./modules/jobs/jobs.routes";   // ← add this
+import jobRoutes from "./modules/jobs/jobs.routes"; 
+import candidateRoutes from "./modules/candidates/candidates.routes";
 
 const app = express();
 
@@ -19,7 +20,7 @@ app.get("/health", (_req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/jobs", jobRoutes); 
-
+app.use("/api/jobs/:jobId/candidates", candidateRoutes);
 app.use(errorMiddleware);
 
 app.listen(env.PORT, () => {
