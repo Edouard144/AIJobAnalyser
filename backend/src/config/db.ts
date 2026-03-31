@@ -7,4 +7,7 @@ import { env } from "./env";
 const sql = neon(env.DATABASE_URL);
 
 // db is what you import everywhere to run queries
-export const db = drizzle(sql, { schema });
+export const db = drizzle(sql, { 
+  schema,
+  logger: false, // set to true temporarily if you want to see SQL queries
+});
