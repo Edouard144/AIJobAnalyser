@@ -9,7 +9,8 @@ export default function Register() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { register } = useAuth();
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
@@ -18,7 +19,8 @@ export default function Register() {
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!name) e.name = 'Name is required';
+    if (!firstName) e.firstName = 'First name is required';
+    if (!lastName) e.lastName = 'Last name is required';
     if (!email) e.email = 'Email is required';
     if (!password || password.length < 6) e.password = 'Password must be at least 6 characters';
     return e;
@@ -31,7 +33,7 @@ export default function Register() {
     if (Object.keys(e).length) return;
     setLoading(true);
     try {
-      await register(name, email, password);
+      await register(firstName, lastName, email, password);
       toast.success(t('common.success'));
       navigate('/dashboard');
     } catch {
@@ -53,15 +55,27 @@ export default function Register() {
       <div className="flex-1 flex items-center justify-center p-8 pt-24">
         <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-6">
           <h1 className="text-3xl font-bold text-foreground">{t('auth.register')}</h1>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">{t('auth.name')}</label>
-            <input
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground text-sm focus:ring-2 focus:ring-ring focus:border-transparent outline-none transition-all"
-            />
-            {errors.name && <p className="text-destructive text-xs mt-1">{errors.name}</p>}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">{t('auth.first_name') || 'First Name'}</label>
+              <input
+                type="text"
+                value={firstName}
+                onChange={e => setFirstName(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground text-sm focus:ring-2 focus:ring-ring focus:border-transparent outline-none transition-all"
+              />
+              {errors.firstName && <p className="text-destructive text-xs mt-1">{errors.firstName}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">{t('auth.last_name') || 'Last Name'}</label>
+              <input
+                type="text"
+                value={lastName}
+                onChange={e => setLastName(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground text-sm focus:ring-2 focus:ring-ring focus:border-transparent outline-none transition-all"
+              />
+              {errors.lastName && <p className="text-destructive text-xs mt-1">{errors.lastName}</p>}
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">{t('auth.email')}</label>

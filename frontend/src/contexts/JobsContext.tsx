@@ -157,10 +157,10 @@ export function JobsProvider({ children }: { children: ReactNode }) {
       description: data.description || undefined,
       location: data.location,
       status: data.status,
-      skills: data.skills.length > 0 ? data.skills : undefined,
+      requiredSkills: data.skills.length > 0 ? data.skills : undefined,
       experienceYears: data.experience > 0 ? data.experience : undefined,
       educationLevel: data.education !== 'any' ? data.education : undefined,
-    });
+    } as any);
     
     const newJob = convertApiJob(apiJob);
     setJobs(prev => [...prev, newJob]);
@@ -172,7 +172,7 @@ export function JobsProvider({ children }: { children: ReactNode }) {
     if (data.title !== undefined) updateData.title = data.title;
     if (data.description !== undefined) updateData.description = data.description;
     if (data.location !== undefined) updateData.location = data.location;
-    if (data.skills !== undefined) updateData.skills = data.skills;
+    if (data.skills !== undefined) updateData.requiredSkills = data.skills;
     if (data.experience !== undefined) updateData.experienceYears = data.experience;
     if (data.education !== undefined) updateData.educationLevel = data.education !== 'any' ? data.education : undefined;
     
@@ -188,7 +188,7 @@ export function JobsProvider({ children }: { children: ReactNode }) {
 
   const addCandidates = useCallback(async (jobId: string, candidates: Omit<Candidate, 'id' | 'addedAt'>[]) => {
     const candidateInputs = candidates.map(c => ({
-      fullName: c.name,
+      fullName: c.name, // The UI sends 'firstName lastName' as 'name'
       email: c.email || undefined,
       skills: c.skills,
       experienceYears: c.experience,

@@ -82,14 +82,14 @@ export default function JobDetail() {
   const handleJsonSubmit = async () => {
     try {
       const parsed = JSON.parse(jsonInput);
-      const candidates = (Array.isArray(parsed) ? parsed : [parsed]).map((c: Record<string, unknown>) => ({
-        name: (c.name as string) || 'Unknown',
-        email: (c.email as string) || '',
-        skills: (c.skills as string[]) || [],
-        experience: (c.experience as number) || 0,
-        education: (c.education as string) || 'any',
+      const candidates = (Array.isArray(parsed) ? parsed : [parsed]).map((c: Record<string, any>) => ({
+        name: c.fullName || c.name || `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Unknown',
+        email: c.email || '',
+        skills: Array.isArray(c.skills) ? c.skills : typeof c.skills === 'string' ? c.skills.split(',').map((s: string) => s.trim()) : [],
+        experience: Number(c.experienceYears || c.experience) || 0,
+        education: c.educationLevel || c.education || 'any',
         source: 'Umurava' as const,
-        position: (c.position as string) || '',
+        position: c.currentPosition || c.position || '',
       }));
       await addCandidates(job.id, candidates);
       setJsonInput('');

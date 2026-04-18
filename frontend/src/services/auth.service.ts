@@ -18,8 +18,8 @@ export interface RefreshResponse {
 }
 
 export const authService = {
-  async register(fullName: string, email: string, password: string): Promise<AuthResponse> {
-    return api.post<AuthResponse>('/api/auth/register', { fullName, email, password });
+  async register(firstName: string, lastName: string, email: string, password: string): Promise<AuthResponse> {
+    return api.post<AuthResponse>('/api/auth/register', { firstName, lastName, email, password });
   },
 
   async login(email: string, password: string): Promise<AuthResponse> {
