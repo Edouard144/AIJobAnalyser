@@ -51,10 +51,62 @@ app.get("/api/docs.json", (_req, res) => {
   res.send(swaggerSpec);
 });
 
+/**
+ * @swagger
+ * /health:
+ *   get:
+ *     summary: Server health check
+ *     description: Returns server status and current timestamp. No authentication required.
+ *     tags: [Health]
+ *     security: []
+ *     responses:
+ *       200:
+ *         description: Server is running
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/HealthResponse'
+ */
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+/**
+ * @swagger
+ * /health/db:
+ *   get:
+ *     summary: Database health check
+ *     description: Verifies the database connection by running a lightweight query. No authentication required.
+ *     tags: [Health]
+ *     security: []
+ *     responses:
+ *       200:
+ *         description: Database connection is healthy
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: db ok
+ *                 result:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       500:
+ *         description: Database connection failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: db error
+ *                 message:
+ *                   type: string
+ */
 app.get("/health/db", async (_req, res) => {
   try {
     const result = await db.select().from(users).limit(1);
