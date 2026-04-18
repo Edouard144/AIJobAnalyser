@@ -55,7 +55,9 @@ export const candidatesController = {
       const job = await candidatesService.verifyJobOwnership(jobId, req.user!.userId);
       if (!job) { sendError(res, "Job not found", 404); return; }
 
-      const result = await candidatesService.getByJob(jobId);
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 20;
+      const result = await candidatesService.getByJob(jobId, page, limit);
       sendSuccess(res, result, "Candidates fetched");
     } catch (err: any) {
       sendError(res, err.message);

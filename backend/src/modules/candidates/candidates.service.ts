@@ -66,11 +66,34 @@ export const candidatesService = {
   },
 
   // ── Get all candidates for a job ──────────────────────────────────────────
-  async getByJob(jobId: string) {
-    return db
-      .select()
+  async getByJob(jobId: string, page: number = 1, limit: number = 20) {
+    const offset = (page - 1) * limit;
+
+    // Get total count
+    const [countResult] = await db
+      .select({ count: candidates.id })
       .from(candidates)
       .where(eq(candidates.jobId, jobId));
+
+    const total = Number(countResult?.count) || 0;
+
+    // Get paginated data
+    const data = await db
+      .select()
+      .from(candidates)
+      .where(eq(candidates.jobId, jobId))
+      .limit(limit)
+      .offset(offset);
+
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   },
 
   // ── Get one candidate ─────────────────────────────────────────────────────

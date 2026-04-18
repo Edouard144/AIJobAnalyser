@@ -125,12 +125,12 @@ export default function Navbar() {
                 onClick={() => setUserOpen(!userOpen)}
                 className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold btn-press"
               >
-                {user.name.charAt(0).toUpperCase()}
+                {(user.fullName || user.email || 'U').charAt(0).toUpperCase()}
               </button>
               {userOpen && (
                 <div className="absolute right-0 top-full mt-2 bg-card border border-border rounded-lg shadow-elevated py-2 min-w-[200px]">
                   <div className="px-4 py-2 border-b border-border">
-                    <p className="text-sm font-medium text-foreground">{user.name}</p>
+                    <p className="text-sm font-medium text-foreground">{user.fullName || user.email}</p>
                     <p className="text-xs text-muted-foreground">{user.email}</p>
                   </div>
                   <button

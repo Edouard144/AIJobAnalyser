@@ -20,4 +20,11 @@ export const bulkCandidatesSchema = z.object({
   candidates: z.array(candidateSchema).min(1, "At least one candidate required"),
 });
 
+// Pagination query params
+export const paginationSchema = z.object({
+  page:  z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
 export type CandidateInput = z.infer<typeof candidateSchema>;
+export type PaginationInput = z.infer<typeof paginationSchema>;

@@ -48,7 +48,7 @@ export default function CreateJob() {
     }
   };
 
-  const canNext = step === 0 ? title && location : step === 1 ? skills.length > 0 : true;
+  const canNext = step === 0 ? title && location : true;
 
   return (
     <div className="min-h-screen pt-24 pb-16">

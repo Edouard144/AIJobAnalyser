@@ -66,8 +66,8 @@ function convertApiJob(apiJob: ApiJob, candidates: Candidate[] = [], results: Sc
     description: apiJob.description || '',
     location: apiJob.location,
     status: apiJob.status,
-    skills: apiJob.skills,
-    experience: apiJob.experienceYears,
+    skills: apiJob.skills || [],
+    experience: apiJob.experienceYears || 0,
     education: apiJob.educationLevel || 'any',
     candidates,
     results,
@@ -157,8 +157,8 @@ export function JobsProvider({ children }: { children: ReactNode }) {
       description: data.description || undefined,
       location: data.location,
       status: data.status,
-      skills: data.skills,
-      experienceYears: data.experience,
+      skills: data.skills.length > 0 ? data.skills : undefined,
+      experienceYears: data.experience > 0 ? data.experience : undefined,
       educationLevel: data.education !== 'any' ? data.education : undefined,
     });
     

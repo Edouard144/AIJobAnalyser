@@ -4,6 +4,16 @@ import { db } from "../../config/db";
 import { jobs } from "../../db/schema/jobs";
 import { CreateJobInput, UpdateJobInput } from "./jobs.schema";
 
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 export const jobsService = {
 
   // ── Create a new job ───────────────────────────────────────────────────────
@@ -17,12 +27,35 @@ export const jobsService = {
   },
 
   // ── Get all jobs for the logged-in recruiter (newest first) ───────────────
-  async getAll(recruiterId: string) {
-    return db
+  async getAll(recruiterId: string, page: number = 1, limit: number = 20) {
+    const offset = (page - 1) * limit;
+
+    // Get total count for pagination
+    const [countResult] = await db
+      .select({ count: jobs.id })
+      .from(jobs)
+      .where(eq(jobs.recruiterId, recruiterId));
+
+    const total = Number(countResult?.count) || 0;
+
+    // Get paginated data
+    const data = await db
       .select()
       .from(jobs)
       .where(eq(jobs.recruiterId, recruiterId))
-      .orderBy(desc(jobs.createdAt)); // newest first
+      .orderBy(desc(jobs.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   },
 
   // ── Get one job (must belong to this recruiter) ───────────────────────────

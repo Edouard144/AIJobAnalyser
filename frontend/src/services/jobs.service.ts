@@ -7,8 +7,8 @@ export interface Job {
   description: string | null;
   location: string;
   status: 'open' | 'screening' | 'closed';
-  skills: string[];
-  experienceYears: number;
+  skills?: string[];
+  experienceYears?: number;
   educationLevel: string | null;
   recruiterId: string;
   createdAt: string;
@@ -20,8 +20,8 @@ export interface CreateJobInput {
   description?: string;
   location: string;
   status?: 'open' | 'screening' | 'closed';
-  skills: string[];
-  experienceYears: number;
+  skills?: string[];
+  experienceYears?: number;
   educationLevel?: string;
 }
 

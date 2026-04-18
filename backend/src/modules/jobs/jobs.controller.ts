@@ -15,8 +15,10 @@ export const jobsController = {
 
   async getAll(req: Request, res: Response) {
     try {
-      const jobs = await jobsService.getAll(req.user!.userId);
-      sendSuccess(res, jobs, "Jobs fetched");
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 20;
+      const result = await jobsService.getAll(req.user!.userId, page, limit);
+      sendSuccess(res, result, "Jobs fetched");
     } catch (err: any) {
       sendError(res, err.message);
     }
