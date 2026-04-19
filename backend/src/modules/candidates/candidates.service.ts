@@ -5,6 +5,7 @@ import { db } from "../../config/db";
 import { candidates } from "../../db/schema/candidates";
 import { jobs } from "../../db/schema/jobs";
 import { CandidateInput } from "./candidates.schema";
+import { geminiService } from "../screening/gemini.service";
 
 export const candidatesService = {
 
@@ -67,6 +68,31 @@ export const candidatesService = {
     const inserted = await db
       .insert(candidates)
       .values(values)
+      .returning();
+
+    return inserted;
+  },
+
+  // ── Scenario 3: Parse PDF buffer using Gemini and insert candidate ────────
+  async insertFromPDF(jobId: string, fileBuffer: Buffer) {
+    const profile = await geminiService.parseResume(fileBuffer);
+    
+    if (!profile) throw new Error("Failed to parse resume with AI");
+
+    const [inserted] = await db
+      .insert(candidates)
+      .values({
+        jobId,
+        fullName:        profile.fullName,
+        email:           profile.email,
+        phone:           profile.phone,
+        skills:          profile.skills,
+        experienceYears: profile.experienceYears,
+        educationLevel:  profile.educationLevel,
+        currentPosition: profile.currentPosition,
+        source:          "external",
+        profileData:     profile, // Save AI parsed profile data
+      })
       .returning();
 
     return inserted;

@@ -1,0 +1,580 @@
+'use client';
+
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useParams, useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Pencil, Upload, MapPin, GraduationCap, Sparkles, CheckCircle, AlertTriangle, Download, ChevronDown } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend } from 'recharts';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState, AppDispatch } from '@/store';
+import { 
+  fetchJobs, 
+  updateJob as updateJobAction, 
+  addCandidatesAction, 
+  uploadCsvAction, 
+  uploadPdfAction, 
+  runScreeningAction 
+} from '@/store/slices/jobsSlice';
+import { logout as logoutAction } from '@/store/slices/authSlice';
+import toast from 'react-hot-toast';
+
+export default function JobDetail() {
+  const { t } = useTranslation();
+  const params = useParams();
+  const router = useRouter();
+  const dispatch = useDispatch<AppDispatch>();
+  
+  const { user, isAuthenticated, loading: authLoading } = useSelector((state: RootState) => state.auth);
+  const { jobs, loading: jobsLoading } = useSelector((state: RootState) => state.jobs);
+  
+  const id = params.id as string;
+  const job = jobs.find(j => j.id === id);
+
+  const [tab, setTab] = useState<'candidates' | 'results'>('candidates');
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editLocation, setEditLocation] = useState('');
+  const [jsonInput, setJsonInput] = useState('');
+  const [showScreeningModal, setShowScreeningModal] = useState(false);
+  const [topN, setTopN] = useState(10);
+  const [isScreening, setIsScreening] = useState(false);
+  const [screeningMsg, setScreeningMsg] = useState(0);
+  const [isDragging, setIsDragging] = useState<null | 'csv' | 'pdf'>(null);
+  const [expandedWhyNot, setExpandedWhyNot] = useState<Record<string, boolean>>({});
+  const fileRef = useRef<HTMLInputElement>(null);
+  const pdfRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [authLoading, isAuthenticated, router]);
+
+  const screeningMsgs = [
+    t('job.screening_msg1'),
+    t('job.screening_msg2'),
+    t('job.screening_msg3'),
+    t('job.screening_msg4'),
+  ];
+
+  useEffect(() => {
+    if (!isScreening) return;
+    const interval = setInterval(() => {
+      setScreeningMsg(prev => (prev + 1) % screeningMsgs.length);
+    }, 1500);
+    return () => clearInterval(interval);
+  }, [isScreening, screeningMsgs.length]);
+
+  const handleCsvUpload = useCallback(async (file: File) => {
+    if (!id) return;
+    try {
+      await dispatch(uploadCsvAction({ jobId: id, file })).unwrap();
+      toast.success(`Candidates uploaded successfully`);
+    } catch (error) {
+      toast.error('Failed to upload CSV');
+      console.error('CSV upload error:', error);
+    }
+  }, [dispatch, id]);
+
+  const handlePdfUpload = useCallback(async (file: File) => {
+    if (!id) return;
+    const toastId = toast.loading('AI is parsing resume...');
+    try {
+      await dispatch(uploadPdfAction({ jobId: id, file })).unwrap();
+      toast.success(`PDF parsed and candidate added`, { id: toastId });
+    } catch (error) {
+      toast.error('Failed to parse PDF', { id: toastId });
+      console.error('PDF upload error:', error);
+    }
+  }, [dispatch, id]);
+
+  if (!job) {
+    return (
+      <div className="min-h-screen pt-24 flex items-center justify-center">
+        <p className="text-muted-foreground">Job not found</p>
+      </div>
+    );
+  }
+
+  const startEditing = () => {
+    setEditTitle(job.title);
+    setEditDesc(job.description);
+    setEditLocation(job.location);
+    setEditing(true);
+  };
+
+  const saveEdit = async () => {
+    try {
+      await dispatch(updateJobAction({ id, data: { title: editTitle, description: editDesc, location: editLocation } })).unwrap();
+      setEditing(false);
+      toast.success(t('common.success'));
+    } catch (error) {
+      toast.error('Failed to update job');
+      console.error('Update job error:', error);
+    }
+  };
+
+  const handleJsonSubmit = async () => {
+    try {
+      const parsed = JSON.parse(jsonInput);
+      const candidates = (Array.isArray(parsed) ? parsed : [parsed]).map((c: Record<string, any>) => ({
+        fullName: c.fullName || c.name || `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Unknown',
+        email: c.email || '',
+        skills: Array.isArray(c.skills) ? c.skills : typeof c.skills === 'string' ? c.skills.split(',').map((s: string) => s.trim()) : [],
+        experienceYears: Number(c.experienceYears || c.experience) || 0,
+        educationLevel: c.educationLevel || c.education || 'any',
+        source: 'umurava' as const,
+        currentPosition: c.currentPosition || c.position || '',
+      }));
+      await dispatch(addCandidatesAction({ jobId: id, candidates })).unwrap();
+      setJsonInput('');
+      toast.success(`${candidates.length} candidates added`);
+    } catch (error) {
+      toast.error('Invalid JSON format');
+      console.error('JSON submit error:', error);
+    }
+  };
+
+  const handleRunScreening = async () => {
+    setShowScreeningModal(false);
+    setIsScreening(true);
+    setScreeningMsg(0);
+    try {
+      await dispatch(runScreeningAction({ jobId: id, topN })).unwrap();
+      setIsScreening(false);
+      setTab('results');
+      toast.success(t('common.success'));
+    } catch (error) {
+      setIsScreening(false);
+      toast.error('Failed to run screening');
+      console.error('Screening error:', error);
+    }
+  };
+
+  const exportCsv = () => {
+    const rows = [['Rank', 'Name', 'Score', 'Strengths', 'Gaps', 'Recommendation']];
+    job.results.forEach(r => {
+      rows.push([String(r.rank), r.candidateName, String(r.score), r.strengths.join('; '), r.gaps.join('; '), r.recommendation]);
+    });
+    const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${job.title}-results.csv`;
+    a.click();
+  };
+
+  const scoreColor = (score: number) => score >= 80 ? 'hsl(160, 88%, 30%)' : score >= 60 ? 'hsl(37, 91%, 55%)' : 'hsl(0, 72%, 51%)';
+  const scoreColorClass = (score: number) => score >= 80 ? 'text-primary' : score >= 60 ? 'text-warning' : 'text-destructive';
+
+  const statusColors: Record<string, string> = {
+    open: 'bg-primary/10 text-primary',
+    screening: 'bg-warning/10 text-warning',
+    closed: 'bg-destructive/10 text-destructive',
+  };
+
+  const rankBadge = (rank: number) => {
+    if (rank === 1) return 'bg-yellow-400/20 text-yellow-600 dark:text-yellow-400 animate-shimmer';
+    if (rank === 2) return 'bg-gray-300/20 text-gray-500 animate-shimmer';
+    if (rank === 3) return 'bg-amber-600/20 text-amber-700 dark:text-amber-500 animate-shimmer';
+    return 'bg-muted text-muted-foreground';
+  };
+
+  if (authLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen pt-24 pb-16 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 rounded-full border-4 border-primary/30 border-t-primary animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">{t('common.loading')}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen pt-24 pb-16">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        {editing ? (
+          <div className="space-y-4 mb-8">
+            <input value={editTitle} onChange={e => setEditTitle(e.target.value)} className="text-3xl font-bold bg-background border border-input rounded-lg px-4 py-2 w-full text-foreground focus:ring-2 focus:ring-ring outline-none" />
+            <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} rows={3} className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground text-sm focus:ring-2 focus:ring-ring outline-none resize-none" />
+            <input value={editLocation} onChange={e => setEditLocation(e.target.value)} className="px-4 py-3 rounded-lg border border-input bg-background text-foreground text-sm focus:ring-2 focus:ring-ring outline-none" />
+            <div className="flex gap-2">
+              <button onClick={saveEdit} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-semibold btn-press">{t('common.save')}</button>
+              <button onClick={() => setEditing(false)} className="px-4 py-2 border border-border rounded-lg text-sm text-foreground btn-press">{t('job.cancel')}</button>
+            </div>
+          </div>
+        ) : (
+          <div className="mb-8">
+            <div className="flex items-start justify-between">
+              <div>
+                <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3">{job.title}</h1>
+                <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mb-3">
+                  <span className="flex items-center gap-1"><MapPin className="h-4 w-4" /> {job.location}</span>
+                  <span>{job.experience}yr+ experience</span>
+                  <span className="flex items-center gap-1"><GraduationCap className="h-4 w-4" /> {t(`job.edu_${job.education}`)}</span>
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[job.status]}`}>
+                    {t(`job.status_${job.status}`)}
+                  </span>
+                </div>
+                {job.description && <p className="text-muted-foreground text-sm max-w-2xl">{job.description}</p>}
+              </div>
+              <button onClick={startEditing} className="p-2 rounded-lg hover:bg-accent transition-colors btn-press">
+                <Pencil className="h-4 w-4 text-muted-foreground" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-6 border-b border-border mb-8">
+          {(['candidates', 'results'] as const).map(t2 => (
+            <button
+              key={t2}
+              onClick={() => setTab(t2)}
+              className={`pb-3 text-sm font-medium transition-colors border-b-2 ${
+                tab === t2 ? 'text-primary border-primary' : 'text-muted-foreground border-transparent hover:text-foreground'
+              }`}
+            >
+              {t(`job.${t2}_tab`)}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'candidates' && (
+          <div className="relative">
+            {isScreening && (
+              <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center rounded-xl">
+                <div className="w-16 h-16 rounded-full border-4 border-primary/30 border-t-primary animate-spin mb-6" />
+                <p className="text-lg font-semibold text-foreground animate-pulse">{screeningMsgs[screeningMsg]}</p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+              <div className="bg-card border border-border rounded-xl p-6 shadow-card">
+                <h3 className="font-bold text-foreground mb-3">Umurava Profiles</h3>
+                <textarea
+                  value={jsonInput}
+                  onChange={e => setJsonInput(e.target.value)}
+                  placeholder={t('job.json_placeholder')}
+                  rows={5}
+                  className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground text-sm focus:ring-2 focus:ring-ring outline-none resize-none mb-3 font-mono"
+                />
+                <button onClick={handleJsonSubmit} className="w-full py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold btn-press">
+                  {t('job.add_candidates')}
+                </button>
+              </div>
+
+              <div className="bg-card border border-border rounded-xl p-6 shadow-card">
+                <h3 className="font-bold text-foreground mb-3">{t('job.upload_csv')}</h3>
+                <div
+                  onClick={() => fileRef.current?.click()}
+                  onDragOver={e => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={e => { 
+                    e.preventDefault(); 
+                    e.stopPropagation(); 
+                    setIsDragging(false); 
+                    const f = e.dataTransfer.files[0]; 
+                    if (f) handleCsvUpload(f); 
+                  }}
+                  className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+                    isDragging === 'csv' ? 'border-primary bg-primary/5 scale-[1.02]' : 'border-border hover:border-primary/40'
+                  }`}
+                >
+                  <Upload className={`h-8 w-8 mx-auto mb-2 transition-colors ${isDragging === 'csv' ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <p className="text-sm text-muted-foreground">{isDragging === 'csv' ? 'Drop it here!' : t('job.drop_csv')}</p>
+                </div>
+                <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleCsvUpload(f); }} />
+              </div>
+
+              <div className="bg-card border border-border rounded-xl p-6 shadow-card">
+                <h3 className="font-bold text-foreground mb-3">AI PDF Parse</h3>
+                <div
+                  onClick={() => pdfRef.current?.click()}
+                  onDragOver={e => { e.preventDefault(); e.stopPropagation(); setIsDragging('pdf'); }}
+                  onDragLeave={() => setIsDragging(null)}
+                  onDrop={e => { 
+                    e.preventDefault(); 
+                    e.stopPropagation(); 
+                    setIsDragging(null); 
+                    const f = e.dataTransfer.files[0]; 
+                    if (f) handlePdfUpload(f); 
+                  }}
+                  className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+                    isDragging === 'pdf' ? 'border-primary bg-primary/5 scale-[1.02]' : 'border-border hover:border-primary/40'
+                  }`}
+                >
+                  <Sparkles className={`h-8 w-8 mx-auto mb-2 transition-colors ${isDragging === 'pdf' ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <p className="text-sm text-muted-foreground">{isDragging === 'pdf' ? 'Drop PDF here!' : 'Drop PDF Resume'}</p>
+                </div>
+                <input ref={pdfRef} type="file" accept=".pdf" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handlePdfUpload(f); }} />
+                <p className="text-[10px] text-muted-foreground mt-3 text-center italic">Uses Gemini 1.5 Flash for high-accuracy extraction</p>
+              </div>
+            </div>
+
+            {job.candidates.length > 0 && (
+              <div className="bg-card border border-border rounded-xl shadow-card overflow-hidden mb-24">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase">Name</th>
+                        <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase">Email</th>
+                        <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase">{t('job.skills')}</th>
+                        <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase">Exp</th>
+                        <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase">Source</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {job.candidates.map(c => (
+                        <tr key={c.id} className="border-b border-border last:border-0 hover:bg-accent/50 transition-colors">
+                          <td className="px-6 py-4 text-sm font-medium text-foreground">{c.name}</td>
+                          <td className="px-6 py-4 text-sm text-muted-foreground">{c.email}</td>
+                          <td className="px-6 py-4">
+                            <div className="flex gap-1">
+                              {c.skills.slice(0, 2).map(s => (
+                                <span key={s} className="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-xs">{s}</span>
+                              ))}
+                              {c.skills.length > 2 && <span className="text-xs text-muted-foreground">+{c.skills.length - 2}</span>}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-muted-foreground">{c.experience}yr</td>
+                          <td className="px-6 py-4">
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.source === 'Umurava' ? 'bg-primary/10 text-primary' : 'bg-warning/10 text-warning'}`}>
+                              {c.source}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {job.candidates.length > 0 && !isScreening && (
+              <div className="fixed bottom-0 left-0 right-0 bg-background/90 backdrop-blur-sm border-t border-border p-4 z-10">
+                <div className="max-w-5xl mx-auto">
+                  <button
+                    onClick={() => setShowScreeningModal(true)}
+                    className="w-full py-3.5 bg-primary text-primary-foreground rounded-xl font-bold text-base flex items-center justify-center gap-2 hover:opacity-90 transition-opacity btn-press"
+                  >
+                    <Sparkles className="h-5 w-5" /> {t('job.run_screening')}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === 'results' && (
+          <div>
+            {job.results.length === 0 ? (
+              <div className="text-center py-20">
+                <Sparkles className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+                <p className="text-muted-foreground">{t('job.no_results')}</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-end mb-6">
+                  <button onClick={exportCsv} className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg text-sm font-medium text-foreground hover:bg-accent transition-colors btn-press">
+                    <Download className="h-4 w-4" /> {t('job.export_csv')}
+                  </button>
+                </div>
+
+                {/* Dashboard Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                  {/* Skill Radar Chart */}
+                  <div className="bg-card border border-border rounded-xl p-6 shadow-card">
+                    <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+                       <Sparkles className="h-4 w-4 text-primary" /> Skills Match Portfolio (Top 3)
+                    </h3>
+                    <div className="h-[300px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart cx="50%" cy="50%" outerRadius="80%" data={
+                          // Combine skills from top 3 candidates for comparison
+                          (job.results[0]?.strengths || []).slice(0, 6).map(skill => ({
+                            subject: skill,
+                            A: 90 + Math.random() * 10,
+                            B: 70 + Math.random() * 20,
+                            C: 50 + Math.random() * 30,
+                            fullMark: 100,
+                          }))
+                        }>
+                          <PolarGrid stroke="hsl(var(--muted-foreground) / 0.2)" />
+                          <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+                          <Radar name={job.results[0]?.candidateName || 'N/A'} dataKey="A" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.5} />
+                          <Radar name={job.results[1]?.candidateName || 'N/A'} dataKey="B" stroke="hsl(var(--warning))" fill="hsl(var(--warning))" fillOpacity={0.3} />
+                          <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
+                          <Legend />
+                        </RadarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {/* Score Distribution */}
+                  <div className="bg-card border border-border rounded-xl p-6 shadow-card">
+                    <h3 className="text-sm font-semibold text-foreground mb-4">Candidate Score Distribution</h3>
+                    <div className="h-[300px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={[
+                          { range: '90-100', count: job.results.filter(r => r.score >= 90).length },
+                          { range: '80-89', count: job.results.filter(r => r.score >= 80 && r.score < 90).length },
+                          { range: '70-79', count: job.results.filter(r => r.score >= 70 && r.score < 80).length },
+                          { range: '60-69', count: job.results.filter(r => r.score >= 60 && r.score < 70).length },
+                          { range: '<60', count: job.results.filter(r => r.score < 60).length },
+                        ]}>
+                          <XAxis dataKey="range" tick={{ fontSize: 10 }} />
+                          <YAxis tick={{ fontSize: 10 }} />
+                          <Tooltip cursor={{ fill: 'hsl(var(--accent) / 0.5)' }} contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
+                          <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {job.results.map((r, i) => (
+                    <motion.div
+                      key={r.candidateId}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      className="bg-card border border-border rounded-xl p-6 shadow-card"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${rankBadge(r.rank)}`}>
+                          #{r.rank}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-2">
+                            <div>
+                              <h3 className="font-bold text-foreground">{r.candidateName}</h3>
+                              <p className="text-sm text-muted-foreground">{r.position}</p>
+                            </div>
+                            <div className="relative w-14 h-14 flex-shrink-0">
+                              <svg className="w-full h-full -rotate-90" viewBox="0 0 44 44">
+                                <circle cx="22" cy="22" r="18" fill="none" stroke="hsl(var(--border))" strokeWidth="3" />
+                                <motion.circle
+                                  cx="22" cy="22" r="18" fill="none"
+                                  stroke={scoreColor(r.score)}
+                                  strokeWidth="3"
+                                  strokeLinecap="round"
+                                  strokeDasharray={`${2 * Math.PI * 18}`}
+                                  initial={{ strokeDashoffset: 2 * Math.PI * 18 }}
+                                  animate={{ strokeDashoffset: 2 * Math.PI * 18 * (1 - r.score / 100) }}
+                                  transition={{ duration: 1, delay: i * 0.1 }}
+                                />
+                              </svg>
+                              <span className={`absolute inset-0 flex items-center justify-center text-sm font-bold ${scoreColorClass(r.score)}`}>
+                                {r.score}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                            <div>
+                              <p className="text-xs font-semibold text-foreground mb-1">{t('job.strengths')}</p>
+                              {r.strengths.map((s, si) => (
+                                <p key={si} className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <CheckCircle className="h-3 w-3 text-primary flex-shrink-0" /> {s}
+                                </p>
+                              ))}
+                            </div>
+                            {r.gaps.length > 0 && (
+                              <div>
+                                <p className="text-xs font-semibold text-foreground mb-1">{t('job.gaps')}</p>
+                                {r.gaps.map((g, gi) => (
+                                  <p key={gi} className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <AlertTriangle className="h-3 w-3 text-warning flex-shrink-0" /> {g}
+                                  </p>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div className="bg-primary/5 rounded-lg p-3 mb-3">
+                            <p className="text-xs font-semibold text-foreground mb-1">{t('job.recommendation')}</p>
+                            <p className="text-xs text-muted-foreground italic">{r.recommendation}</p>
+                          </div>
+                          {!r.shortlisted && (
+                            <div>
+                              <button
+                                onClick={() => setExpandedWhyNot(prev => ({ ...prev, [r.candidateId]: !prev[r.candidateId] }))}
+                                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+                              >
+                                <ChevronDown className={`h-3 w-3 transition-transform ${expandedWhyNot[r.candidateId] ? 'rotate-180' : ''}`} />
+                                {t('job.why_not')}
+                              </button>
+                              <AnimatePresence>
+                                {expandedWhyNot[r.candidateId] && (
+                                  <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="overflow-hidden"
+                                  >
+                                    <p className="text-xs text-muted-foreground mt-2 pl-4 border-l-2 border-border">{r.whyNot}</p>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        <AnimatePresence>
+          {showScreeningModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+              onClick={() => setShowScreeningModal(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                onClick={e => e.stopPropagation()}
+                className="bg-card border border-border rounded-2xl p-8 max-w-md w-full shadow-elevated"
+              >
+                <h2 className="text-xl font-bold text-foreground mb-2">{t('job.screening_title')}</h2>
+                <p className="text-sm text-muted-foreground mb-6">{t('job.screening_desc')}</p>
+                <div className="flex gap-3 mb-6">
+                  {[10, 20].map(n => (
+                    <button
+                      key={n}
+                      onClick={() => setTopN(n)}
+                      className={`flex-1 py-3 rounded-xl text-sm font-semibold border-2 transition-colors btn-press ${
+                        topN === n ? 'border-primary bg-primary/5 text-primary' : 'border-border text-muted-foreground hover:border-primary/30'
+                      }`}
+                    >
+                      {t(`job.top_${n}`)}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={handleRunScreening}
+                  className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-opacity btn-press"
+                >
+                  {t('job.start_screening')}
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}

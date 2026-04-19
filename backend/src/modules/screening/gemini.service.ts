@@ -3,8 +3,8 @@ import { env } from "../../config/env";
 
 const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
 
-// Use gemini-1.5-flash — different model family, separate quota
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+// Use gemini-1.5-flash-latest — more robust alias for current SDK
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
 export interface AIResult {
   candidateId:    string;
@@ -13,6 +13,17 @@ export interface AIResult {
   strengths:      string[];
   gaps:           string[];
   recommendation: string;
+}
+
+export interface ParsedProfile {
+  fullName:        string;
+  email:           string | null;
+  phone:           string | null;
+  skills:          string[];
+  experienceYears: number;
+  educationLevel:  string | null;
+  currentPosition: string | null;
+  summary:         string | null;
 }
 
 export const geminiService = {
@@ -114,4 +125,48 @@ Return ONLY a valid JSON array. No explanation, no markdown, no code blocks. Jus
 
     return parsed;
   },
-};
+
+  async parseResume(fileBuffer: Buffer): Promise<ParsedProfile> {
+    const prompt = `
+You are an expert HR data extractor. Your task is to extract structured information from a resume PDF.
+Focus on accuracy and professional details.
+
+## OUTPUT FORMAT
+Return ONLY a valid JSON object. No explanation, no markdown, no code blocks. Just raw JSON.
+
+{
+  "fullName": "Full Name",
+  "email": "email@example.com",
+  "phone": "+123456789",
+  "skills": ["Skill 1", "Skill 2"],
+  "experienceYears": 5,
+  "educationLevel": "Bachelor's Degree",
+  "currentPosition": "Senior Software Engineer",
+  "summary": "Brief professional summary extracted from the profile"
+}
+`;
+
+    const result = await model.generateContent([
+      {
+        inlineData: {
+          data: fileBuffer.toString("base64"),
+          mimeType: "application/pdf",
+        },
+      },
+      prompt,
+    ]);
+
+    const text = result.response.text().trim();
+    const clean = text
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/```$/i, "")
+      .trim();
+
+    try {
+      return JSON.parse(clean);
+    } catch {
+      throw new Error(`Gemini returned invalid JSON for resume: ${clean.slice(0, 300)}`);
+    }
+  },
+};

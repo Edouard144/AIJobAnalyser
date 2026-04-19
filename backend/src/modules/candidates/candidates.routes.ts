@@ -351,6 +351,9 @@ router.post("/bulk", bulkInsertLimiter, validate(bulkCandidatesSchema), candidat
 // Scenario 2 — CSV file upload
 router.post("/upload-csv", upload.single("file"), candidatesController.uploadCSV);
 
+// Scenario 3 — PDF resume parsing
+router.post("/upload-pdf", upload.single("file"), candidatesController.uploadPDF);
+
 // Standard CRUD
 router.get( "/",           validate(paginationSchema), candidatesController.getByJob);
 router.get( "/:id",                                  candidatesController.getOne);

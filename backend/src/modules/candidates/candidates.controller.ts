@@ -47,6 +47,23 @@ export const candidatesController = {
     }
   },
 
+  // ── Scenario 3: POST /api/jobs/:jobId/candidates/upload-pdf ───────────────
+  async uploadPDF(req: Request, res: Response) {
+    try {
+      const jobId = req.params.jobId as string;
+
+      const job = await candidatesService.verifyJobOwnership(jobId, req.user!.userId);
+      if (!job) { sendError(res, "Job not found", 404); return; }
+
+      if (!req.file) { sendError(res, "No PDF file uploaded", 400); return; }
+
+      const result = await candidatesService.insertFromPDF(jobId, req.file.buffer);
+      sendSuccess(res, { inserted: 1, candidates: [result] }, "PDF resume parsed and candidate added", 201);
+    } catch (err: any) {
+      sendError(res, err.message, 400);
+    }
+  },
+
   // ── GET /api/jobs/:jobId/candidates ───────────────────────────────────────
   async getByJob(req: Request, res: Response) {
     try {
