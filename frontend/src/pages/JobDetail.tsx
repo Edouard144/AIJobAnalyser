@@ -24,6 +24,7 @@ export default function JobDetail() {
   const [topN, setTopN] = useState(10);
   const [isScreening, setIsScreening] = useState(false);
   const [screeningMsg, setScreeningMsg] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   const [expandedWhyNot, setExpandedWhyNot] = useState<Record<string, boolean>>({});
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -226,12 +227,21 @@ export default function JobDetail() {
                 <h3 className="font-bold text-foreground mb-3">{t('job.upload_csv')}</h3>
                 <div
                   onClick={() => fileRef.current?.click()}
-                  onDragOver={e => e.preventDefault()}
-                  onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleCsvUpload(f); }}
-                  className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-primary/40 transition-colors"
+                  onDragOver={e => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={e => { 
+                    e.preventDefault(); 
+                    e.stopPropagation(); 
+                    setIsDragging(false); 
+                    const f = e.dataTransfer.files[0]; 
+                    if (f) handleCsvUpload(f); 
+                  }}
+                  className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+                    isDragging ? 'border-primary bg-primary/5 scale-[1.02]' : 'border-border hover:border-primary/40'
+                  }`}
                 >
-                  <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">{t('job.drop_csv')}</p>
+                  <Upload className={`h-8 w-8 mx-auto mb-2 transition-colors ${isDragging ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <p className="text-sm text-muted-foreground">{isDragging ? 'Drop it here!' : t('job.drop_csv')}</p>
                 </div>
                 <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleCsvUpload(f); }} />
               </div>
