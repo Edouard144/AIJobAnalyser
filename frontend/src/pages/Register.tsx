@@ -22,7 +22,7 @@ export default function Register() {
     if (!firstName) e.firstName = 'First name is required';
     if (!lastName) e.lastName = 'Last name is required';
     if (!email) e.email = 'Email is required';
-    if (!password || password.length < 6) e.password = 'Password must be at least 6 characters';
+    if (!password || password.length < 8) e.password = 'Password must be at least 8 characters';
     return e;
   };
 
@@ -36,8 +36,8 @@ export default function Register() {
       await register(firstName, lastName, email, password);
       toast.success(t('common.success'));
       navigate('/dashboard');
-    } catch {
-      toast.error(t('common.error'));
+    } catch (err: any) {
+      toast.error(err.message || t('common.error'));
     } finally {
       setLoading(false);
     }

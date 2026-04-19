@@ -66,7 +66,7 @@ function convertApiJob(apiJob: ApiJob, candidates: Candidate[] = [], results: Sc
     description: apiJob.description || '',
     location: apiJob.location,
     status: apiJob.status,
-    skills: apiJob.skills || [],
+    skills: apiJob.requiredSkills || [],
     experience: apiJob.experienceYears || 0,
     education: apiJob.educationLevel || 'any',
     candidates,
@@ -160,7 +160,7 @@ export function JobsProvider({ children }: { children: ReactNode }) {
       requiredSkills: data.skills.length > 0 ? data.skills : undefined,
       experienceYears: data.experience > 0 ? data.experience : undefined,
       educationLevel: data.education !== 'any' ? data.education : undefined,
-    } as any);
+    });
     
     const newJob = convertApiJob(apiJob);
     setJobs(prev => [...prev, newJob]);

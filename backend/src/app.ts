@@ -24,9 +24,24 @@ if (env.NODE_ENV === "development") {
 // Security headers
 app.use(helmet());
 
-// CORS - restrict to frontend URL
+// CORS - robust for local development
+const allowedOrigins = [
+  env.FRONTEND_URL,
+  "http://localhost:8081",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:3000",
+].filter(Boolean) as string[];
+
 app.use(cors({
-  origin: env.FRONTEND_URL,
+  origin: (origin, callback) => {
+    if (!origin || env.NODE_ENV === "development") return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true,
 }));
 

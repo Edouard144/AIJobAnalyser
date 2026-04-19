@@ -7,7 +7,7 @@ export interface Job {
   description: string | null;
   location: string;
   status: 'open' | 'screening' | 'closed';
-  skills?: string[];
+  requiredSkills?: string[];
   experienceYears?: number;
   educationLevel: string | null;
   recruiterId: string;
@@ -20,7 +20,7 @@ export interface CreateJobInput {
   description?: string;
   location: string;
   status?: 'open' | 'screening' | 'closed';
-  skills?: string[];
+  requiredSkills?: string[];
   experienceYears?: number;
   educationLevel?: string;
 }
@@ -29,7 +29,7 @@ export interface UpdateJobInput {
   title?: string;
   description?: string;
   location?: string;
-  skills?: string[];
+  requiredSkills?: string[];
   experienceYears?: number;
   educationLevel?: string;
 }

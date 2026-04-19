@@ -43,19 +43,26 @@ export const candidatesService = {
 
     // Map CSV columns to our candidate schema
     // Flexible — works even if some columns are missing
-    const values = rows.map((row) => ({
-      jobId,
-      fullName:        row.full_name || row.name || row.fullName || "Unknown",
-      email:           row.email || null,
-      phone:           row.phone || null,
-      skills:          row.skills ? row.skills.split(",").map((s) => s.trim()) : [],
-      experienceYears: row.experience_years ? parseInt(row.experience_years) : 0,
-      educationLevel:  row.education_level || row.education || null,
-      currentPosition: row.current_position || row.position || row.role || null,
-      resumeUrl:       row.resume_url || row.resume || null,
-      source:          "external" as const,
-      profileData:     row, // save full raw CSV row for AI context
-    }));
+    const values = rows.map((row) => {
+      // Handle separate firstName/lastName or combined fullName
+      const fName = row.firstName || row.first_name || row.FirstName || "";
+      const lName = row.lastName || row.last_name || row.LastName || "";
+      const fullName = row.fullName || row.full_name || row.name || `${fName} ${lName}`.trim() || "Unknown";
+
+      return {
+        jobId,
+        fullName,
+        email:           row.email || row.Email || null,
+        phone:           row.phone || row.Phone || null,
+        skills:          (row.skills || row.Skills || "").split(",").map((s) => s.trim()).filter(Boolean),
+        experienceYears: parseInt(row.experience_years || row.experience || row.Experience || "0") || 0,
+        educationLevel:  row.education_level || row.education || row.Education || null,
+        currentPosition: row.current_position || row.position || row.role || row.Role || null,
+        resumeUrl:       row.resume_url || row.resume || row.Resume || null,
+        source:          "external" as const,
+        profileData:     row, // save full raw CSV row for AI context
+      };
+    });
 
     const inserted = await db
       .insert(candidates)

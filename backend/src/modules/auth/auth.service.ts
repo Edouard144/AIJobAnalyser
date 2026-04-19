@@ -25,12 +25,15 @@ export const authService = {
     const hashedPassword = await bcrypt.hash(input.password, 12);
 
     // 3. Insert new user
+    // Combine names for backward compatibility with schema
+    const fullName = input.fullName || `${input.firstName || ''} ${input.lastName || ''}`.trim() || undefined;
+
     const [newUser] = await db
       .insert(users)
       .values({
         email:    input.email,
         password: hashedPassword,
-        fullName: input.fullName,
+        fullName,
       })
       .returning({ id: users.id, email: users.email, fullName: users.fullName });
 
