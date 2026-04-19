@@ -354,7 +354,7 @@ export default function JobDetail() {
                               {c.skills.length > 3 && <span className="text-[10px] text-muted-foreground">+{c.skills.length - 3}</span>}
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-sm text-muted-foreground">{c.experience}yr</td>
+                          <td className="px-6 py-4 text-sm text-muted-foreground">{c.experienceYears}yr</td>
                           <td className="px-6 py-4">
                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${c.source === 'Umurava' ? 'bg-primary/20 text-primary' : 'bg-orange-500/20 text-orange-500'}`}>
                               {c.source}
@@ -612,6 +612,7 @@ export default function JobDetail() {
                   {t('job.start_screening')}
                 </button>
               </motion.div>
+            </motion.div>
           )}
         </AnimatePresence>
 

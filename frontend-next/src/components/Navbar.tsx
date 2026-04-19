@@ -104,7 +104,7 @@ export default function Navbar() {
               onClick={() => setLangOpen(!langOpen)}
               className="flex items-center gap-1 px-2 py-1.5 rounded-md text-sm hover:bg-accent transition-colors btn-press"
             >
-              <span>{currentLang.flag}</span>
+              <span>{mounted ? currentLang.flag : '🌐'}</span>
               <ChevronDown className="h-3 w-3 text-muted-foreground" />
             </button>
             {langOpen && (
@@ -117,7 +117,7 @@ export default function Navbar() {
                       lang.code === i18n.language ? 'text-primary font-medium' : 'text-foreground'
                     }`}
                   >
-                    <span>{lang.flag}</span> {lang.label}
+                    <span>{mounted ? lang.flag : ''}</span> {lang.label}
                   </button>
                 ))}
               </div>

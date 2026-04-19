@@ -49,6 +49,12 @@ export default function Dashboard() {
     }
   }, [dispatch, isAuthenticated]);
 
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const totalCandidates = jobs.reduce((sum, j) => sum + j.candidates.length, 0);
   const screeningsRun = jobs.filter(j => j.results.length > 0).length;
 
@@ -65,16 +71,17 @@ export default function Dashboard() {
   };
 
   const daysAgo = (date: string) => {
+    if (!mounted) return '...';
     const days = Math.floor((Date.now() - new Date(date).getTime()) / 86400000);
     return days === 0 ? 'Today' : t('dashboard.days_ago', { count: days });
   };
 
-  if (authLoading || jobsLoading) {
+  if (authLoading || (jobsLoading && !mounted)) {
     return (
       <div className="min-h-screen pt-24 pb-16 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 rounded-full border-4 border-primary/30 border-t-primary animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">{t('common.loading')}</p>
+          <p className="text-muted-foreground">{mounted ? t('common.loading') : 'Loading...'}</p>
         </div>
       </div>
     );
