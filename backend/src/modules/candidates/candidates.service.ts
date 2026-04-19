@@ -38,6 +38,8 @@ export const candidatesService = {
       columns: true,        // use first row as column names
       skip_empty_lines: true,
       trim: true,           // remove whitespace from values
+      relax_column_count: true, // handle rows with extra commas
+      relax_quotes: true,       // handle malformed quotes gracefully
     }) as Record<string, string>[];
 
     if (rows.length === 0) throw new Error("CSV file is empty");
@@ -46,22 +48,31 @@ export const candidatesService = {
     // Flexible — works even if some columns are missing
     const values = rows.map((row) => {
       // Handle separate firstName/lastName or combined fullName
-      const fName = row.firstName || row.first_name || row.FirstName || "";
-      const lName = row.lastName || row.last_name || row.LastName || "";
-      const fullName = row.fullName || row.full_name || row.name || `${fName} ${lName}`.trim() || "Unknown";
-
+      const fName = row.firstName || row.first_name || row.FirstName || row.fullName?.split(" ")[0] || "Unknown";
+      const lName = row.lastName || row.last_name || row.LastName || row.fullName?.split(" ").slice(1).join(" ") || "Candidate";
+      
       return {
         jobId,
-        fullName,
+        firstName:       fName,
+        lastName:        lName,
+        fullName:        `${fName} ${lName}`.trim(),
         email:           row.email || row.Email || null,
         phone:           row.phone || row.Phone || null,
-        skills:          (row.skills || row.Skills || "").split(",").map((s) => s.trim()).filter(Boolean),
-        experienceYears: parseInt(row.experience_years || row.experience || row.Experience || "0") || 0,
-        educationLevel:  row.education_level || row.education || row.Education || null,
-        currentPosition: row.current_position || row.position || row.role || row.Role || null,
-        resumeUrl:       row.resume_url || row.resume || row.Resume || null,
+        headline:        row.headline || row.Headline || row.current_position || "Talent",
+        bio:             row.bio || row.Bio || null,
+        location:        row.location || row.Location || "Remote",
+        
+        // Complex fields default to empty compliant structures
+        skills:          (row.skills || "").split(",").map(s => ({ name: s.trim(), level: "Intermediate", yearsOfExperience: 1 })).filter(s => s.name),
+        experience:      [],
+        education:       [],
+        projects:        [],
+        
+        experienceYears: parseInt(row.experience_years || row.experience || "0") || 0,
+        educationLevel:  row.education_level || row.education || null,
+        currentPosition: row.current_position || row.position || null,
         source:          "external" as const,
-        profileData:     row, // save full raw CSV row for AI context
+        profileData:     row, 
       };
     });
 
@@ -83,15 +94,21 @@ export const candidatesService = {
       .insert(candidates)
       .values({
         jobId,
-        fullName:        profile.fullName,
+        firstName:       profile.firstName,
+        lastName:        profile.lastName,
+        fullName:        `${profile.firstName} ${profile.lastName}`.trim(),
         email:           profile.email,
-        phone:           profile.phone,
+        headline:        profile.headline,
+        bio:             profile.bio,
+        location:        profile.location,
         skills:          profile.skills,
-        experienceYears: profile.experienceYears,
-        educationLevel:  profile.educationLevel,
-        currentPosition: profile.currentPosition,
+        experience:      profile.experience,
+        education:       profile.education,
+        projects:        profile.projects,
+        availability:    profile.availability,
+        socialLinks:     profile.socialLinks,
         source:          "external",
-        profileData:     profile, // Save AI parsed profile data
+        profileData:     profile,
       })
       .returning();
 

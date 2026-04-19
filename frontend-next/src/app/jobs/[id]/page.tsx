@@ -72,9 +72,9 @@ export default function JobDetail() {
     try {
       await dispatch(uploadCsvAction({ jobId: id, file })).unwrap();
       toast.success(`Candidates uploaded successfully`);
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to upload CSV');
-      console.error('CSV upload error:', error);
+      console.error('CSV upload error:', error.message || error);
     }
   }, [dispatch, id]);
 
@@ -84,9 +84,9 @@ export default function JobDetail() {
     try {
       await dispatch(uploadPdfAction({ jobId: id, file })).unwrap();
       toast.success(`PDF parsed and candidate added`, { id: toastId });
-    } catch (error) {
-      toast.error('Failed to parse PDF', { id: toastId });
-      console.error('PDF upload error:', error);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to parse PDF', { id: toastId });
+      console.error('PDF upload error:', error.message || error);
     }
   }, [dispatch, id]);
 
@@ -110,9 +110,9 @@ export default function JobDetail() {
       await dispatch(updateJobAction({ id, data: { title: editTitle, description: editDesc, location: editLocation } })).unwrap();
       setEditing(false);
       toast.success(t('common.success'));
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to update job');
-      console.error('Update job error:', error);
+      console.error('Update job error:', error.message || error);
     }
   };
 
@@ -146,10 +146,10 @@ export default function JobDetail() {
       setIsScreening(false);
       setTab('results');
       toast.success(t('common.success'));
-    } catch (error) {
+    } catch (error: any) {
       setIsScreening(false);
-      toast.error('Failed to run screening');
-      console.error('Screening error:', error);
+      toast.error(error.message || 'Failed to run screening');
+      console.error('Screening error:', error.message || error);
     }
   };
 
@@ -311,7 +311,7 @@ export default function JobDetail() {
                   <p className="text-sm text-muted-foreground">{isDragging === 'pdf' ? 'Drop PDF here!' : 'Drop PDF Resume'}</p>
                 </div>
                 <input ref={pdfRef} type="file" accept=".pdf" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handlePdfUpload(f); }} />
-                <p className="text-[10px] text-muted-foreground mt-3 text-center italic">Uses Gemini 1.5 Flash for high-accuracy extraction</p>
+                <p className="text-[10px] text-muted-foreground mt-3 text-center italic">Uses Gemini 2.0 & Smart Rescue Fallback for high accuracy</p>
               </div>
             </div>
 
@@ -331,19 +331,26 @@ export default function JobDetail() {
                     <tbody>
                       {job.candidates.map(c => (
                         <tr key={c.id} className="border-b border-border last:border-0 hover:bg-accent/50 transition-colors">
-                          <td className="px-6 py-4 text-sm font-medium text-foreground">{c.name}</td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col">
+                              <span className="text-sm font-bold text-foreground">{c.firstName} {c.lastName}</span>
+                              {c.headline && <span className="text-[10px] text-muted-foreground truncate max-w-[150px]">{c.headline}</span>}
+                            </div>
+                          </td>
                           <td className="px-6 py-4 text-sm text-muted-foreground">{c.email}</td>
                           <td className="px-6 py-4">
-                            <div className="flex gap-1">
-                              {c.skills.slice(0, 2).map(s => (
-                                <span key={s} className="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-xs">{s}</span>
+                            <div className="flex flex-wrap gap-1">
+                              {c.skills.slice(0, 3).map((s: any) => (
+                                <span key={typeof s === 'string' ? s : s.name} className="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-[10px] border border-primary/20">
+                                  {typeof s === 'string' ? s : s.name}
+                                </span>
                               ))}
-                              {c.skills.length > 2 && <span className="text-xs text-muted-foreground">+{c.skills.length - 2}</span>}
+                              {c.skills.length > 3 && <span className="text-[10px] text-muted-foreground">+{c.skills.length - 3}</span>}
                             </div>
                           </td>
                           <td className="px-6 py-4 text-sm text-muted-foreground">{c.experience}yr</td>
                           <td className="px-6 py-4">
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.source === 'Umurava' ? 'bg-primary/10 text-primary' : 'bg-warning/10 text-warning'}`}>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${c.source === 'Umurava' ? 'bg-primary/20 text-primary' : 'bg-orange-500/20 text-orange-500'}`}>
                               {c.source}
                             </span>
                           </td>

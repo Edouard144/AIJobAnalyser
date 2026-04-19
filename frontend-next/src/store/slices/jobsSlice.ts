@@ -5,13 +5,18 @@ import { screeningService, type ScreeningResult as ApiScreeningResult } from '@/
 
 export interface Candidate {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
+  name: string; // convenience full name
   email: string;
-  skills: string[];
+  skills: any[]; // Changed to any[] to support structured skills if needed
   experience: number;
   education: string;
   source: 'Umurava' | 'External';
   addedAt: string;
+  headline?: string;
+  location?: string;
+  bio?: string;
   position?: string;
 }
 
@@ -55,32 +60,38 @@ const initialState: JobsState = {
 };
 
 // Converters
-function convertApiCandidate(apiCandidate: ApiCandidate): Candidate {
+function convertApiCandidate(apiCandidate: any): Candidate {
   return {
     id: apiCandidate.id,
-    name: apiCandidate.fullName,
+    firstName: apiCandidate.firstName || apiCandidate.fullName?.split(" ")[0] || "Unknown",
+    lastName: apiCandidate.lastName || apiCandidate.fullName?.split(" ").slice(1).join(" ") || "Candidate",
+    name: apiCandidate.fullName || `${apiCandidate.firstName} ${apiCandidate.lastName}`,
     email: apiCandidate.email || '',
-    skills: apiCandidate.skills,
-    experience: apiCandidate.experienceYears,
+    skills: apiCandidate.skills || [],
+    experience: apiCandidate.experienceYears || 0,
     education: apiCandidate.educationLevel || 'any',
     source: apiCandidate.source === 'umurava' ? 'Umurava' : 'External',
     addedAt: apiCandidate.createdAt,
+    headline: apiCandidate.headline,
+    location: apiCandidate.location,
+    bio: apiCandidate.bio,
     position: apiCandidate.currentPosition || undefined,
   };
 }
 
-function convertApiScreeningResult(apiResult: ApiScreeningResult): ScreeningResult {
+function convertApiScreeningResult(apiResult: any): ScreeningResult {
+  const candidate = apiResult.candidate || {};
   return {
-    candidateId: apiResult.candidate.id,
-    candidateName: apiResult.candidate.fullName,
-    position: apiResult.candidate.currentPosition || 'Candidate',
+    candidateId: candidate.id || apiResult.candidateId,
+    candidateName: candidate.fullName || `${candidate.firstName} ${candidate.lastName}` || 'Unknown',
+    position: candidate.headline || candidate.currentPosition || 'Candidate',
     rank: apiResult.rank,
-    score: parseFloat(apiResult.score),
-    strengths: apiResult.strengths,
-    gaps: apiResult.gaps,
-    recommendation: apiResult.recommendation,
+    score: typeof apiResult.score === 'string' ? parseFloat(apiResult.score) : apiResult.score,
+    strengths: apiResult.strengths || [],
+    gaps: apiResult.gaps || [],
+    recommendation: apiResult.recommendation || '',
     shortlisted: false,
-    whyNot: apiResult.gaps.length > 0 ? apiResult.gaps.join(', ') : undefined,
+    whyNot: apiResult.gaps?.length > 0 ? apiResult.gaps.join(', ') : undefined,
   };
 }
 
