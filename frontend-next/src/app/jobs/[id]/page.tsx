@@ -18,6 +18,7 @@ import {
 } from '@/store/slices/jobsSlice';
 import { logout as logoutAction } from '@/store/slices/authSlice';
 import toast from 'react-hot-toast';
+import CandidatePortfolioModal from '@/components/CandidatePortfolioModal';
 
 export default function JobDetail() {
   const { t } = useTranslation();
@@ -43,6 +44,7 @@ export default function JobDetail() {
   const [screeningMsg, setScreeningMsg] = useState(0);
   const [isDragging, setIsDragging] = useState<null | 'csv' | 'pdf'>(null);
   const [expandedWhyNot, setExpandedWhyNot] = useState<Record<string, boolean>>({});
+  const [selectedCandidate, setSelectedCandidate] = useState<any>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const pdfRef = useRef<HTMLInputElement>(null);
 
@@ -330,7 +332,11 @@ export default function JobDetail() {
                     </thead>
                     <tbody>
                       {job.candidates.map(c => (
-                        <tr key={c.id} className="border-b border-border last:border-0 hover:bg-accent/50 transition-colors">
+                        <tr 
+                          key={c.id} 
+                          onClick={() => setSelectedCandidate(c)}
+                          className="border-b border-border last:border-0 hover:bg-accent/50 cursor-pointer transition-all hover:border-l-4 hover:border-l-primary"
+                        >
                           <td className="px-6 py-4">
                             <div className="flex flex-col">
                               <span className="text-sm font-bold text-foreground">{c.firstName} {c.lastName}</span>
@@ -392,6 +398,28 @@ export default function JobDetail() {
                   </button>
                 </div>
 
+                {/* Pool Health Summary */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="bg-primary/5 border border-primary/20 p-4 rounded-xl">
+                    <p className="text-[10px] font-bold text-primary uppercase mb-1">Total Pool Match</p>
+                    <p className="text-2xl font-bold text-primary">
+                      {Math.round(job.results.reduce((acc, r) => acc + r.score, 0) / (job.results.length || 1))}%
+                    </p>
+                  </div>
+                  <div className="bg-accent/50 border border-border p-4 rounded-xl">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Top Tier Candidates</p>
+                    <p className="text-2xl font-bold text-foreground">
+                      {job.results.filter(r => r.score >= 85).length} <span className="text-xs text-muted-foreground font-normal">of {job.results.length}</span>
+                    </p>
+                  </div>
+                  <div className="bg-accent/50 border border-border p-4 rounded-xl">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Leading Skill Found</p>
+                    <p className="text-2xl font-bold text-foreground truncate">
+                      {job.results[0]?.strengths?.[0] || 'N/A'}
+                    </p>
+                  </div>
+                </div>
+
                 {/* Dashboard Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                   {/* Skill Radar Chart */}
@@ -424,7 +452,9 @@ export default function JobDetail() {
 
                   {/* Score Distribution */}
                   <div className="bg-card border border-border rounded-xl p-6 shadow-card">
-                    <h3 className="text-sm font-semibold text-foreground mb-4">Candidate Score Distribution</h3>
+                    <h3 className="text-sm font-semibold text-foreground mb-4 font-bold flex items-center gap-2">
+                      <BarChart className="h-4 w-4 text-primary" /> Pool Distribution
+                    </h3>
                     <div className="h-[300px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={[
@@ -451,7 +481,11 @@ export default function JobDetail() {
                       initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.05 }}
-                      className="bg-card border border-border rounded-xl p-6 shadow-card"
+                      onClick={() => {
+                        const c = job.candidates.find(cand => cand.id === r.candidateId);
+                        if (c) setSelectedCandidate(c);
+                      }}
+                      className="bg-card border border-border rounded-xl p-6 shadow-card cursor-pointer hover:border-primary/50 transition-all hover:translate-x-1"
                     >
                       <div className="flex items-start gap-4">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${rankBadge(r.rank)}`}>
@@ -578,9 +612,16 @@ export default function JobDetail() {
                   {t('job.start_screening')}
                 </button>
               </motion.div>
-            </motion.div>
           )}
         </AnimatePresence>
+
+        {selectedCandidate && (
+          <CandidatePortfolioModal 
+            candidate={selectedCandidate}
+            result={job.results.find(r => r.candidateId === selectedCandidate.id)}
+            onClose={() => setSelectedCandidate(null)}
+          />
+        )}
       </div>
     </div>
   );

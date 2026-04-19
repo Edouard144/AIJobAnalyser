@@ -36,4 +36,8 @@ export const screeningService = {
   async getResults(jobId: string): Promise<ScreeningResult[]> {
     return api.get<ScreeningResult[]>(`/api/jobs/${jobId}/screening/results`, true);
   },
+
+  async getInterviewKit(jobId: string, candidateId: string): Promise<string[]> {
+    return api.get<string[]>(`/api/jobs/${jobId}/screening/candidates/${candidateId}/interview-kit`);
+  },
 };

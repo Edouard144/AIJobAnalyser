@@ -7,11 +7,19 @@ export interface Candidate {
   id: string;
   firstName: string;
   lastName: string;
-  name: string; // convenience full name
+  name: string; 
   email: string;
-  skills: any[]; // Changed to any[] to support structured skills if needed
-  experience: number;
-  education: string;
+  skills: any[]; 
+  experienceYears: number; // raw years
+  experience: any[]; // structured array
+  education: any[]; // structured array
+  projects: any[]; // structured array
+  availability?: {
+    status: string;
+    type: string;
+    startDate?: string;
+  };
+  socialLinks?: Record<string, string>;
   source: 'Umurava' | 'External';
   addedAt: string;
   headline?: string;
@@ -62,20 +70,24 @@ const initialState: JobsState = {
 // Converters
 function convertApiCandidate(apiCandidate: any): Candidate {
   return {
-    id: apiCandidate.id,
-    firstName: apiCandidate.firstName || apiCandidate.fullName?.split(" ")[0] || "Unknown",
-    lastName: apiCandidate.lastName || apiCandidate.fullName?.split(" ").slice(1).join(" ") || "Candidate",
-    name: apiCandidate.fullName || `${apiCandidate.firstName} ${apiCandidate.lastName}`,
-    email: apiCandidate.email || '',
-    skills: apiCandidate.skills || [],
-    experience: apiCandidate.experienceYears || 0,
-    education: apiCandidate.educationLevel || 'any',
-    source: apiCandidate.source === 'umurava' ? 'Umurava' : 'External',
-    addedAt: apiCandidate.createdAt,
-    headline: apiCandidate.headline,
-    location: apiCandidate.location,
-    bio: apiCandidate.bio,
-    position: apiCandidate.currentPosition || undefined,
+    id:              apiCandidate.id,
+    firstName:       apiCandidate.firstName || apiCandidate.fullName?.split(" ")[0] || "Unknown",
+    lastName:        apiCandidate.lastName || apiCandidate.fullName?.split(" ").slice(1).join(" ") || "Candidate",
+    name:            apiCandidate.fullName || `${apiCandidate.firstName} ${apiCandidate.lastName}`,
+    email:           apiCandidate.email || '',
+    skills:          apiCandidate.skills || [],
+    experienceYears: apiCandidate.experienceYears || 0,
+    experience:      apiCandidate.experience || [],
+    education:       apiCandidate.education || [],
+    projects:        apiCandidate.projects || [],
+    availability:    apiCandidate.availability || undefined,
+    socialLinks:     apiCandidate.socialLinks || undefined,
+    source:          apiCandidate.source === 'umurava' ? 'Umurava' : 'External',
+    addedAt:         apiCandidate.createdAt,
+    headline:        apiCandidate.headline,
+    location:        apiCandidate.location,
+    bio:             apiCandidate.bio,
+    position:        apiCandidate.currentPosition || undefined,
   };
 }
 

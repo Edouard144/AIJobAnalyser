@@ -63,6 +63,18 @@ export const screeningService = {
     };
   },
 
+  async generateInterviewKit(jobId: string, candidateId: string) {
+    const [job] = await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1);
+    const [candidate] = await db.select().from(candidates).where(eq(candidates.id, candidateId)).limit(1);
+
+    if (!job || !candidate) throw new Error("Job or Candidate not found");
+
+    return geminiService.generateInterviewKit(
+      { title: job.title, requiredSkills: job.requiredSkills || [] },
+      candidate
+    );
+  },
+
   // ── Get existing screening results for a job ───────────────────────────────
   async getResults(jobId: string) {
     // Join screening results with candidate info for a rich response

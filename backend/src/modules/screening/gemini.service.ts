@@ -170,4 +170,29 @@ OUTPUT FORMAT:
       };
     }
   },
+
+  async generateInterviewKit(
+    job: { title: string; requiredSkills: string[] },
+    candidate: any
+  ): Promise<string[]> {
+    try {
+      const prompt = `
+Generate 3 tailored interview questions for ${candidate.firstName} for the ${job.title} position.
+RELEVANT SKILLS: ${candidate.skills?.map((s: any) => typeof s === 'string' ? s : s.name).join(", ")}
+JOB REQS: ${job.requiredSkills.join(", ")}
+Focus on their specific gaps or how their unique projects relate to the job.
+RETURN ONLY A JSON ARRAY OF STRINGS.
+`;
+      const result = await model.generateContent(prompt);
+      const text = result.response.text().trim().replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
+      return JSON.parse(text);
+    } catch (err) {
+      console.warn("⚠️ Interview Kit AI Failed. Using Smart Question Fallback.");
+      return [
+        `How have you applied your ${candidate.skills?.[0]?.name || 'technical'} skills in your most significant project?`,
+        `Given the requirements for ${job.title}, how do you plan to address the learning curve for any tools you haven't used yet?`,
+        `Can you walk us through a challenging project where you had to solve a complex performance or architectural issue?`
+      ];
+    }
+  },
 };

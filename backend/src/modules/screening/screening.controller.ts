@@ -42,4 +42,15 @@ export const screeningController = {
       sendError(res, err.message);
     }
   },
+
+  // GET /api/jobs/:jobId/screening/candidates/:candidateId/interview-kit
+  async generateInterviewKit(req: Request, res: Response) {
+    try {
+      const { jobId, candidateId } = req.params as { jobId: string; candidateId: string };
+      const questions = await screeningService.generateInterviewKit(jobId, candidateId);
+      sendSuccess(res, questions, "Interview kit generated successfully");
+    } catch (err: any) {
+      sendError(res, err.message, 500);
+    }
+  },
 };

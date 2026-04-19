@@ -132,4 +132,7 @@ router.post("/run", screeningLimiter, screeningController.run);
 // Fetch saved results
 router.get("/results",  screeningController.getResults);
 
+// Generate tailored interview questions
+router.get("/candidates/:candidateId/interview-kit", screeningController.generateInterviewKit);
+
 export default router;
