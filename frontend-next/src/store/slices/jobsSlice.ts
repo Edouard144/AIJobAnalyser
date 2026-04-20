@@ -242,12 +242,21 @@ const jobsSlice = createSlice({
         state.error = action.error.message || 'Failed to fetch jobs';
       })
       .addCase(addJob.fulfilled, (state, action) => {
-        state.jobs.push(action.payload);
+        const newJob = action.payload as any;
+        state.jobs.push({
+          ...newJob,
+          description: newJob.description || '',
+        });
       })
       .addCase(updateJob.fulfilled, (state, action) => {
         const index = state.jobs.findIndex(j => j.id === action.payload.id);
         if (index !== -1) {
-          state.jobs[index] = { ...state.jobs[index], ...action.payload };
+          const updated = action.payload as any;
+          state.jobs[index] = { 
+            ...state.jobs[index], 
+            ...updated,
+            description: updated.description || '',
+          };
         }
       })
       .addCase(addCandidatesAction.fulfilled, (state, action) => {

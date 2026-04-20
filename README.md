@@ -1,4 +1,4 @@
-# 🏆 AI Recruiter: Road to 1st Place
+# 🏆 AI Recruiter: Roadmap
 
 An advanced, AI-powered candidate screening and recruitment platform designed for the Umurava AI Hackathon. Built with **Next.js 15**, **Express.js**, **Neon Postgres**, and **Google Gemini 1.5 Flash**.
 
