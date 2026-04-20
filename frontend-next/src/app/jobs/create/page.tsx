@@ -48,7 +48,15 @@ export default function CreateJob() {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      await dispatch(addJobAction({ title, description, location, status, skills, experience, education })).unwrap();
+      await dispatch(addJobAction({
+        title,
+        description,
+        location,
+        status,
+        requiredSkills: skills,
+        experienceYears: experience,
+        educationLevel: education
+      })).unwrap();
       toast.success(t('common.success'));
       router.push('/dashboard');
     } catch (error: any) {

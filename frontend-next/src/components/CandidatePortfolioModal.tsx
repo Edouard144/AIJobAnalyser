@@ -195,6 +195,7 @@ export default function CandidatePortfolioModal({ candidate, onClose, result }: 
                   </h3>
                   <div className="space-y-8 border-l-2 border-border ml-2 pl-6">
                     {candidate.experience?.length > 0 ? candidate.experience.map((exp: any, i: number) => (
+                      exp ? (
                       <div key={i} className="relative">
                         <div className="absolute -left-[31px] top-1.5 w-4 h-4 rounded-full bg-background border-2 border-primary" />
                         <div className="space-y-2">
@@ -217,7 +218,7 @@ export default function CandidatePortfolioModal({ candidate, onClose, result }: 
                           )}
                         </div>
                       </div>
-                    )) : (
+                    ) : null)) : (
                       <p className="text-sm text-muted-foreground italic">No detailed experience provided.</p>
                     )}
                   </div>

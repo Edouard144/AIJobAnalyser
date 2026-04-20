@@ -38,17 +38,25 @@ export const screeningService = {
       .delete(screeningResults)
       .where(eq(screeningResults.jobId, jobId));
 
-    // 5. Save all AI results to DB in one insert call
-    const toInsert = aiResults.map((r) => ({
-      jobId,
-      candidateId:    r.candidateId,
-      rank:           r.rank,
-      score:          String(r.score),   // numeric stored as string in drizzle
-      strengths:      r.strengths,
-      gaps:           r.gaps,
-      recommendation: r.recommendation,
-      rawAiOutput:    r as unknown as Record<string, unknown>,
-    }));
+// 5. Save all AI results to DB in one insert call
+    // Map AI results back to actual candidate UUIDs
+    const toInsert = aiResults.map((r) => {
+      // AI returns rank-based index, need to find actual candidate UUID
+      const rankedResult = r.rank >= 1 && r.rank <= allCandidates.length 
+        ? allCandidates[r.rank - 1] 
+        : allCandidates.find(c => c.id === r.candidateId) || allCandidates[0];
+      
+      return {
+        jobId,
+        candidateId:    rankedResult?.id || r.candidateId,
+        rank:           r.rank,
+        score:          String(Number(r.score).toFixed(2)), // "50.00"
+        strengths:      Array.isArray(r.strengths) ? r.strengths : [],
+        gaps:           Array.isArray(r.gaps) ? r.gaps : [],
+        recommendation: r.recommendation || '',
+        rawAiOutput:    r as unknown as Record<string, unknown>,
+      };
+    });
 
     const saved = await db
       .insert(screeningResults)

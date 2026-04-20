@@ -90,26 +90,61 @@ export const candidatesService = {
       return trimmed.split(',').map(s => s.trim()).filter(s => s);
     };
 
-    // Helper: parse object field (JSON or pipe-separated key:value pairs)
-    const parseObjectField = (value: string | undefined): any => {
-      if (!value) return null;
+    // Helper: parse availability (JSON, pipe-separated status|type, or comma)
+    const parseAvailability = (value: string | undefined): { status: string; type: string } => {
+      if (!value) return { status: "Available", type: "Full-time" };
       const trimmed = value.trim();
-      if (!trimmed) return null;
+      if (!trimmed) return { status: "Available", type: "Full-time" };
       // Try JSON parse first
       try {
-        return JSON.parse(trimmed);
-      } catch {
-        // Try pipe-separated: key:value|key:value
-      }
+        const parsed = JSON.parse(trimmed);
+        if (parsed.status || parsed.type) return parsed;
+      } catch {}
+      // Handle pipe-separated: Available|Full-time or comma: Available,Full-time
+      const parts = trimmed.includes('|') ? trimmed.split('|') : trimmed.split(',');
+      return {
+        status: parts[0]?.trim() || "Available",
+        type: parts[1]?.trim() || "Full-time"
+      };
+    };
+
+    // Helper: parse experience/education (pipe-separated)
+    const parseExperience = (value: string | undefined): any[] => {
+      if (!value) return [];
+      const trimmed = value.trim();
+      if (!trimmed) return [];
+      // Handle pipe-separated: company|role|start|end|description
       if (trimmed.includes('|')) {
-        const obj: Record<string, string> = {};
-        trimmed.split('|').forEach(pair => {
-          const [key, val] = pair.split(':');
-          if (key && val) obj[key.trim()] = val.trim();
-        });
-        return Object.keys(obj).length > 0 ? obj : null;
+        const parts = trimmed.split('|');
+        return [{
+          company: parts[0]?.trim() || "",
+          role: parts[1]?.trim() || "",
+          startDate: parts[2]?.trim() || "",
+          endDate: parts[3]?.trim() || "",
+          description: parts[4]?.trim() || "",
+          technologies: [],
+          isCurrent: parts[3]?.trim().toLowerCase() === 'present'
+        }];
       }
-      return null;
+      return [];
+    };
+
+    const parseEducation = (value: string | undefined): any[] => {
+      if (!value) return [];
+      const trimmed = value.trim();
+      if (!trimmed) return [];
+      // Handle pipe-separated: institution|degree|field|startYear|endYear
+      if (trimmed.includes('|')) {
+        const parts = trimmed.split('|');
+        return [{
+          institution: parts[0]?.trim() || "",
+          degree: parts[1]?.trim() || "",
+          fieldOfStudy: parts[2]?.trim() || "",
+          startYear: parseInt(parts[3]) || 0,
+          endYear: parseInt(parts[4]) || 0
+        }];
+      }
+      return [];
     };
 
     // Map CSV columns to our candidate schema
@@ -118,15 +153,15 @@ export const candidatesService = {
       const fName = row.firstName || row.first_name || row.FirstName || row.fullName?.split(" ")[0] || "Unknown";
       const lName = row.lastName || row.last_name || row.LastName || row.fullName?.split(" ").slice(1).join(" ") || "Candidate";
       
-      // Parse complex fields that may be JSON-encoded
+      // Parse complex fields using new helpers
       const skillNames = parseArrayField(row.skills);
       const languageNames = parseArrayField(row.languages);
-      const educationData = parseArrayField(row.education).length > 0 ? [parseObjectField(row.education)] : [];
-      const experienceData = parseArrayField(row.experience).length > 0 ? [parseObjectField(row.experience)] : [];
+      const educationData = parseEducation(row.education);
+      const experienceData = parseExperience(row.experience);
       const projectData = parseArrayField(row.projects);
       const certData = parseArrayField(row.certifications);
-      const availabilityData = parseObjectField(row.availability) || { status: "Available", type: "Full-time" };
-      const socialData = parseObjectField(row.social_links) || {};
+      const availabilityData = parseAvailability(row.availability);
+      const socialData = {};
       
       return {
         jobId,
