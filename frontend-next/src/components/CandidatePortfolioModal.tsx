@@ -252,15 +252,15 @@ export default function CandidatePortfolioModal({ candidate, onClose, result }: 
                     <GraduationCap className="h-5 w-5 text-primary" /> Education
                   </h3>
                   <div className="grid grid-cols-1 gap-4">
-                    {candidate.education?.map((edu: any, i: number) => (
+                    {candidate.education?.filter(Boolean).map((edu: any, i: number) => (
                       <div key={i} className="flex gap-4">
                         <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
                           <Target className="h-5 w-5 text-muted-foreground" />
                         </div>
                         <div>
-                          <h4 className="font-bold text-sm text-foreground">{edu.degree} in {edu.fieldOfStudy}</h4>
-                          <p className="text-xs text-primary">{edu.institution}</p>
-                          <p className="text-[10px] text-muted-foreground">{edu.startYear} - {edu.endYear}</p>
+                          <h4 className="font-bold text-sm text-foreground">{edu?.degree || ''} in {edu?.fieldOfStudy || ''}</h4>
+                          <p className="text-xs text-primary">{edu?.institution || ''}</p>
+                          <p className="text-[10px] text-muted-foreground">{edu?.startYear || ''} - {edu?.endYear || ''}</p>
                         </div>
                       </div>
                     ))}
