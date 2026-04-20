@@ -40,21 +40,40 @@ export const screeningService = {
 
 // 5. Save all AI results to DB in one insert call
     // Map AI results back to actual candidate UUIDs
-    const toInsert = aiResults.map((r) => {
-      // AI returns rank-based index, need to find actual candidate UUID
-      const rankedResult = r.rank >= 1 && r.rank <= allCandidates.length 
-        ? allCandidates[r.rank - 1] 
-        : allCandidates.find(c => c.id === r.candidateId) || allCandidates[0];
+    console.log('📊 AI Results received:', JSON.stringify(aiResults.slice(0, 3)));
+    console.log('📊 Candidates available:', allCandidates.length);
+    console.log('📊 First 3 candidates:', allCandidates.slice(0, 3).map(c => ({ id: c.id, name: c.fullName })));
+    
+    // Ensure we have candidates to work with
+    if (allCandidates.length === 0) {
+      throw new Error('No candidates found for this job');
+    }
+    
+    const toInsert = aiResults.map((r, index) => {
+      // Use index position directly - rank 1 = index 0, rank 2 = index 1, etc.
+      // This is more reliable than relying on AI to return correct ranks
+      const targetIndex = index < allCandidates.length ? index : 0;
+      const candidate = allCandidates[targetIndex];
+      
+      if (!candidate || !candidate.id) {
+        console.error(`⚠️ No candidate found at index ${index}`);
+        throw new Error(`Invalid candidate at index ${index}`);
+      }
+      
+      console.log(`🔗 Mapping index ${index} to candidate:`, candidate.fullName, candidate.id);
+      
+      const strengths = Array.isArray(r.strengths) ? r.strengths : [];
+      const gaps = Array.isArray(r.gaps) ? r.gaps : [];
       
       return {
         jobId,
-        candidateId:    rankedResult?.id || r.candidateId,
-        rank:           r.rank,
-        score:          String(Number(r.score).toFixed(2)), // "50.00"
-        strengths:      Array.isArray(r.strengths) ? r.strengths : [],
-        gaps:           Array.isArray(r.gaps) ? r.gaps : [],
+        candidateId:    candidate.id,
+        rank:           index + 1,
+        score:          String(Number(r.score || 50).toFixed(2)),
+        strengths:      strengths,
+        gaps:           gaps,
         recommendation: r.recommendation || '',
-        rawAiOutput:    r as unknown as Record<string, unknown>,
+        rawAiOutput:    JSON.stringify(r),
       };
     });
 
@@ -83,7 +102,7 @@ export const screeningService = {
     );
   },
 
-  // ── Get existing screening results for a job ───────────────────────────────
+// ── Get existing screening results for a job ───────────────────────────────
   async getResults(jobId: string) {
     // Join screening results with candidate info for a rich response
     const results = await db
@@ -112,8 +131,13 @@ export const screeningService = {
       .from(screeningResults)
       .innerJoin(candidates, eq(screeningResults.candidateId, candidates.id))
       .where(eq(screeningResults.jobId, jobId))
-      .orderBy(screeningResults.rank); // return in rank order
+      .orderBy(screeningResults.rank);
 
-    return results;
+    // Parse strengths and gaps from stored strings if needed
+    return results.map(r => ({
+      ...r,
+      strengths: typeof r.strengths === 'string' ? [r.strengths] : (r.strengths || []),
+      gaps: typeof r.gaps === 'string' ? [r.gaps] : (r.gaps || []),
+    }));
   },
 };

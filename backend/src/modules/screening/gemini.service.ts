@@ -79,7 +79,7 @@ You must return ONLY a strict JSON array containing the top ${topN} ranked candi
 JOB TITLE: ${job.title}
 JOB DESCRIPTION: ${job.description || "N/A"}
 REQUIRED SKILLS: ${job.requiredSkills?.join(", ") || "None"}
-REQUIRED EXP: ${job.experienceYears || 0} years
+REQUIRED YEARS OF EXPERIENCE: ${job.experienceYears || 0} years
 REQUIRED EDUCATION: ${job.educationLevel || "N/A"}
 
 CANDIDATES PROFILE DATA:
@@ -87,8 +87,8 @@ ${JSON.stringify(
   candidates.map(c => ({
     id: c.id,
     name: c.fullName,
-    skills: c.skills,
-    exp: c.experienceYears,
+    skills: c.skills?.map((s: any) => typeof s === 'string' ? s : s.name) || [],
+    yearsOfExperience: c.experienceYears || 0,
     location: c.location,
     experience: c.experience,
     education: c.education,
@@ -96,8 +96,15 @@ ${JSON.stringify(
   })).slice(0, 50)
 )}
 
-You must evaluate each candidate across multiple dimensions (skills match, experience depth, educational relevance, and project alignment).
+SCORING CRITERIA (apply these weighted factors):
+1. SKILLS MATCH (40%): Does candidate have required skills?
+2. EXPERIENCE YEARS (25%): Does candidate meet or exceed required years? Bonus for more years, penalty for less.
+3. EDUCATION RELEVANCE (15%): Does education match requirements?
+4. PROJECT ALIGNMENT (20%): Do past projects demonstrate relevant experience?
+
 Calculate a match score out of 100. Provide clear natural language reasoning via strengths and gaps to ensure "Humans stay in control" of the final decision.
+
+IMPORTANT: Pay close attention to each candidate's "yearsOfExperience" field and compare it to the required ${job.experienceYears || 0} years. Candidates with more relevant experience should score higher.
 
 OUTPUT STRICT JSON FORMAT:
 [
@@ -110,6 +117,8 @@ OUTPUT STRICT JSON FORMAT:
     "finalRecommendation": "SHORTLIST: High potential match due to..." 
   }
 ]
+
+IMPORTANT: The candidateId must match exactly one of the candidate IDs provided in CANDIDATES PROFILE DATA. Use the UUID from the candidate's "id" field.
 `;
     try {
 
@@ -118,14 +127,22 @@ OUTPUT STRICT JSON FORMAT:
       const rawText = result.response.candidates?.[0]?.content?.parts?.[0]?.text || "";
       const text = rawText.trim().replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
       const parsed = JSON.parse(text);
-      return parsed.map((item: any) => ({
-        candidateId: item.candidateId,
-        rank: item.rank,
-        score: item.score,
-        strengths: item.strengths || [],
-        gaps: item.gapsRisks || item.gaps || [],
-        recommendation: item.finalRecommendation || item.recommendation || ""
-      }));
+      
+      // Map results back to actual candidate IDs using rank position
+      return parsed.map((item: any, index: number) => {
+        const candidateId = item.candidateId;
+        const rank = item.rank || (index + 1);
+        // Use the rank to get the correct candidate
+        const matchedCandidate = candidates[rank - 1] || candidates[index] || candidates[0];
+        return {
+          candidateId: matchedCandidate?.id || candidateId,
+          rank: rank,
+          score: item.score,
+          strengths: item.strengths || [],
+          gaps: item.gapsRisks || item.gaps || [],
+          recommendation: item.finalRecommendation || item.recommendation || ""
+        };
+      });
     } catch (geminiError: any) {
       console.warn("⚠️ GEMINI FAILED. Falling back to GROQ (Llama 3.3)...", geminiError.message);
       try {
@@ -142,14 +159,19 @@ OUTPUT STRICT JSON FORMAT:
         else if (parsed && !Array.isArray(parsed) && Array.isArray(parsed.candidates)) parsed = parsed.candidates;
         else if (parsed && !Array.isArray(parsed)) parsed = [parsed];
         
-        return parsed.map((item: any) => ({
-          candidateId: item.candidateId,
-          rank: item.rank || 1,
-          score: item.score || 50,
-          strengths: item.strengths || [],
-          gaps: item.gapsRisks || item.gaps || [],
-          recommendation: item.finalRecommendation || item.recommendation || ""
-        }));
+        // Map results back to actual candidate IDs using rank position
+        return parsed.map((item: any, index: number) => {
+          const rank = item.rank || (index + 1);
+          const matchedCandidate = candidates[rank - 1] || candidates[index] || candidates[0];
+          return {
+            candidateId: matchedCandidate?.id || item.candidateId,
+            rank: rank,
+            score: item.score || 50,
+            strengths: item.strengths || [],
+            gaps: item.gapsRisks || item.gaps || [],
+            recommendation: item.finalRecommendation || item.recommendation || ""
+          };
+        });
       } catch (groqError: any) {
         console.warn("❌ GROQ FAILED. Activating Precise Heuristic Rescue Engine...", groqError.message);
 

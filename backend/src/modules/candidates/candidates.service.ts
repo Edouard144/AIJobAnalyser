@@ -116,6 +116,11 @@ export const candidatesService = {
       // Handle pipe-separated: company|role|start|end|description
       if (trimmed.includes('|')) {
         const parts = trimmed.split('|');
+        const startYear = parseInt(parts[2]) || 0;
+        const endYear = parts[3]?.trim().toLowerCase() === 'present' 
+          ? new Date().getFullYear() 
+          : parseInt(parts[3]) || startYear;
+        const years = endYear - startYear;
         return [{
           company: parts[0]?.trim() || "",
           role: parts[1]?.trim() || "",
@@ -123,10 +128,19 @@ export const candidatesService = {
           endDate: parts[3]?.trim() || "",
           description: parts[4]?.trim() || "",
           technologies: [],
-          isCurrent: parts[3]?.trim().toLowerCase() === 'present'
+          isCurrent: parts[3]?.trim().toLowerCase() === 'present',
+          yearsOfExperience: years > 0 ? years : 0
         }];
       }
       return [];
+    };
+
+    // Helper: calculate total years of experience from experience array
+    const calculateYearsOfExperience = (experienceData: any[]): number => {
+      if (!experienceData || experienceData.length === 0) return 0;
+      return experienceData.reduce((total: number, exp: any) => {
+        return total + (exp.yearsOfExperience || 0);
+      }, 0);
     };
 
     const parseEducation = (value: string | undefined): any[] => {
@@ -184,7 +198,9 @@ export const candidatesService = {
         availability:    availabilityData,
         socialLinks:     Object.keys(socialData).length > 0 ? socialData : undefined,
         
-        experienceYears: parseInt(row.experience_years || row.experienceYears || row.experience || "0") || 0,
+        // Calculate years of experience from parsed data, fallback to CSV column
+        experienceYears: calculateYearsOfExperience(experienceData) || 
+                          parseInt(row.experience_years || row.experienceYears || row.years_experience || "0") || 0,
         educationLevel:  row.education_level || row.educationLevel || row.education || null,
         currentPosition: row.current_position || row.position || null,
         source:          "external" as const,

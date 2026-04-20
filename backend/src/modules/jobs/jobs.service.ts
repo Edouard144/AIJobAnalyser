@@ -16,8 +16,9 @@ export interface PaginatedResponse<T> {
 
 export const jobsService = {
 
-  // ── Create a new job ───────────────────────────────────────────────────────
+// ── Create a new job ───────────────────────────────────────────────────────
   async create(recruiterId: string, input: CreateJobInput) {
+    console.log('📝 Creating job with input:', JSON.stringify(input));
     const [job] = await db
       .insert(jobs)
       .values({ ...input, recruiterId })
