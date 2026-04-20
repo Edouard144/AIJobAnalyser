@@ -8,6 +8,13 @@
       "when": 1774907968289,
       "tag": "0000_groovy_sunset_bain",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1776664701481,
+      "tag": "0001_lazy_serpent_society",
+      "breakpoints": true
     }
   ]
 }

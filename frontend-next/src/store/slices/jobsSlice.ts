@@ -99,8 +99,10 @@ function convertApiScreeningResult(apiResult: any): ScreeningResult {
     position: candidate.headline || candidate.currentPosition || 'Candidate',
     rank: apiResult.rank,
     score: typeof apiResult.score === 'string' ? parseFloat(apiResult.score) : apiResult.score,
-    strengths: apiResult.strengths || [],
-    gaps: apiResult.gaps || [],
+    strengths: Array.isArray(apiResult.strengths) ? apiResult.strengths : 
+               (typeof apiResult.strengths === 'string' ? apiResult.strengths.replace(/^\{|\}$/g, '').split('","').map((s: string) => s.replace(/^"|"$/g, '').trim()).filter(Boolean) : []),
+    gaps: Array.isArray(apiResult.gaps) ? apiResult.gaps : 
+          (typeof apiResult.gaps === 'string' ? apiResult.gaps.replace(/^\{|\}$/g, '').split('","').map((s: string) => s.replace(/^"|"$/g, '').trim()).filter(Boolean) : []),
     recommendation: apiResult.recommendation || '',
     shortlisted: false,
     whyNot: apiResult.gaps?.length > 0 ? apiResult.gaps.join(', ') : undefined,

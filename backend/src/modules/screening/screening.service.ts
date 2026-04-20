@@ -89,6 +89,8 @@ export const screeningService = {
         screenedAt:     screeningResults.screenedAt,
         candidate: {
           id:              candidates.id,
+          firstName:       candidates.firstName,
+          lastName:        candidates.lastName,
           fullName:        candidates.fullName,
           email:           candidates.email,
           skills:          candidates.skills,

@@ -55,13 +55,13 @@ sequenceDiagram
 ### Prerequisites
 - Node.js 18+
 - Neon Postgres Connection String
-- Google Gemini API Key
+- Google Cloud Vertex AI / Gemini API Key
 
 ### Backend Setup
 1. `cd backend`
 2. `npm install`
-3. Create `.env` with `DATABASE_URL` and `GEMINI_API_KEY`
-4. `npm run db:push`
+3. Create `.env` with `DATABASE_URL`, `GCP_PROJECT_ID`, and `GCP_LOCATION`
+4. `npm run db:push` (or `npx drizzle-kit generate` & `push`)
 5. `npm run dev`
 
 ### Frontend Setup
@@ -70,5 +70,17 @@ sequenceDiagram
 3. Create `.env.local` with `NEXT_PUBLIC_API_URL=http://localhost:5000`
 4. `npm run dev`
 
-## 👨‍💻 Submission for Umurava AI Hackathon 2024
-Built by **Edouard** - Focusing on Engineering Quality, Technical Excellence, and Product Thinking.
+## ⚖️ Assumptions, Limitations & Justifications
+
+### Database Choice Justification (Postgres vs MongoDB)
+While the hackathon guidelines recommend MongoDB, **we engineered this platform using PostgreSQL (via Drizzle ORM on Neon).** The justification is simple: the **Talent Profile Schema** required by Umurava is highly structured. Postgres with `JSONB` columns allows us to strictly enforce data integrity on core fields (Name, Email, Job ID) while maintaining schemaless flexibility within `JSONB` blobs for unstructured skills and experiences. This prevents AI hallucinated data from breaking the DB at scale, a critical factor for enterprise HR tools over NoSQL.
+
+### Assumptions
+- **Parse Accuracy**: We assume PDFs uploaded maintain roughly standard resume flows (Experience -> Education -> Skills).
+- **LLM Context Limit**: We cap the batch AI screening to Top 50 candidates per prompt to avoid Gemini 1.5 token overflow exhaustion.
+
+### Limitations
+- Highly visual PDF resumes (like complex graphic design portfolios with no selectable text layer) may trigger the Heuristic Rescue Engine instead of the AI parser if text extraction fails.
+
+## 👨‍💻 Submission for Umurava AI Hackathon
+Built by **Team Inganji** - Focusing on Engineering Quality, Technical Excellence, and Product Thinking.
