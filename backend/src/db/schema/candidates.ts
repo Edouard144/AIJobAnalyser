@@ -18,6 +18,7 @@ export const candidates = pgTable("candidates", {
   
   // Structured Data (Umurava Spec)
   skills:          jsonb("skills_json"),              // [{name, level, yearsOfExperience}]
+  languages:       jsonb("languages_json"),           // [{name, proficiency}]
   experience:      jsonb("experience_json"),          // [{company, role, description, ...}]
   education:       jsonb("education_json"),           // [{institution, degree, field, ...}]
   projects:        jsonb("projects_json"),           // [{name, description, link, ...}]

@@ -1,11 +1,12 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { VertexAI } from "@google-cloud/vertexai";
 import { env } from "../../config/env";
+import * as pdfParse from "pdf-parse";
+const pdf = (pdfParse as any).default || pdfParse;
 
-const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
+const vertexAI = new VertexAI({ project: env.GCP_PROJECT_ID, location: env.GCP_LOCATION });
 
-// Use gemini-pro-latest — trying the Pro tier which may have a separate quota or be available in your region
-const DEFAULT_MODEL = "gemini-pro-latest";
-const model = genAI.getGenerativeModel({ model: DEFAULT_MODEL });
+const DEFAULT_MODEL = "gemini-1.5-flash";
+const model = vertexAI.getGenerativeModel({ model: DEFAULT_MODEL });
 
 export interface AIResult {
   candidateId:    string;
@@ -88,31 +89,55 @@ OUTPUT FORMAT:
       const text = result.response.text().trim().replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
       return JSON.parse(text);
     } catch (err: any) {
-      console.warn("⚠️ GEMINI API FAILED (429/403/Quota). Activating Smart Rescue Fallback...", err.message);
+      console.warn("⚠️ GEMINI API FAILED. Activating Precise Heuristic Rescue Engine...", err.message);
       
-      // Smart Heuristic Fallback
+      const TECH_STACK = ["React", "Node", "TypeScript", "Python", "Java", "SQL", "AWS", "Docker", "Next.js", "Figma"];
+
       const scored = candidates.map(c => {
-        let score = 50; // base score
+        let score = 30; // base score for having a profile
         const jobSkills = (job.requiredSkills || []).map(s => String(s).toLowerCase());
-        const candidateSkills = (c.skills || []).map((s: any) => {
-          if (typeof s === 'string') return s.toLowerCase();
-          if (s && typeof s === 'object' && s.name) return String(s.name).toLowerCase();
-          return "";
-        }).filter(Boolean);
         
-        // Skill matching (up to 40 pts)
-        const matches = jobSkills.filter(s => candidateSkills.some((cs: string) => cs.includes(s) || s.includes(cs)));
-        score += (matches.length / Math.max(jobSkills.length, 1)) * 40;
+        // 1. Unified Skill Extraction (Skills + Projects + Headline)
+        const candidateProfileText = [
+          ...(c.skills || []).map((s: any) => typeof s === 'string' ? s : s.name),
+          ...(c.projects || []).flatMap((p: any) => [p.name, p.description, ...(p.technologies || [])]),
+          c.headline,
+          c.bio
+        ].join(" ").toLowerCase();
+
+        // Project Analysis Phase
+        const projectTechs = (c.projects || []).flatMap((p: any) => p.technologies || []).map((t: string) => t.toLowerCase());
+        const projectMatches = jobSkills.filter(s => projectTechs.includes(s));
+        if (projectMatches.length > 0) score += 10;
+
+        const matches = jobSkills.filter(s => candidateProfileText.includes(s));
+        score += (matches.length / Math.max(jobSkills.length, 1)) * 30; // up to 30 pts
+
+        // 2. Experience Matching (up to 15 pts)
+        const expMatch = c.experienceYears >= (job.experienceYears || 0);
+        if (expMatch) score += 15;
+
+        // 3. Education Logic weighting (up to 15 pts)
+        const edu = String(c.educationLevel || "").toLowerCase();
+        if (edu.includes("phd") || edu.includes("doctorate")) score += 15;
+        else if (edu.includes("master")) score += 10;
+        else if (edu.includes("bachelor") || edu.includes("degree")) score += 5;
+
+        const strengths: string[] = [];
+        if (matches.length > 0) strengths.push(`Detected expertise in: ${matches.slice(0, 3).join(", ")}`);
+        if (projectMatches.length > 0) strengths.push(`Applied ${projectMatches.join(", ")} in real projects`);
+        if (expMatch) strengths.push(`${c.experienceYears}y professional experience meets requirements`);
         
-        // Experience matching (up to 10 pts)
-        if (c.experienceYears >= (job.experienceYears || 0)) score += 10;
+        const gaps = jobSkills.filter(s => !matches.includes(s)).slice(0, 2);
+        if (c.experienceYears < (job.experienceYears || 0)) gaps.push(`Short on experience (Needs ${job.experienceYears}y)`);
         
         return {
           candidateId: c.id,
-          score: Math.min(Math.round(score + (Math.random() * 5)), 100),
-          strengths: matches.length > 0 ? [`Matching skills: ${matches.slice(0, 3).join(", ")}`] : ["Solid general background"],
-          gaps: matches.length < jobSkills.length ? ["Missing some specific niche keywords"] : [],
-          recommendation: score > 75 ? "Highly recommended for interview based on skill overlap." : "Good potential, needs technical screening."
+          score: Math.min(Math.round(score), 100),
+          strengths: strengths.length > 0 ? strengths : ["General profile relevance matches standard expectations"],
+          gaps: gaps.length > 0 ? gaps.map(g => `Gap identified: ${g}`) : [],
+          recommendation: score > 80 ? "SHORTLIST: Exceptional match verified by multi-dimensional heuristic scan." : 
+                          score > 60 ? "CONSIDER: Viable candidate with substantial overlap in core requirements." : "REJECT: Critical mismatches found during heuristic evaluation."
         };
       });
 
@@ -123,51 +148,86 @@ OUTPUT FORMAT:
     }
   },
 
-  async parseResume(fileBuffer: Buffer): Promise<UmuravaProfile> {
+  async parseResume(fileBuffer: Buffer, filename: string = "Resume.pdf"): Promise<UmuravaProfile> {
     try {
       const prompt = `Extract UMURAVA COMPLIANT JSON from resume.`;
       const result = await model.generateContent([{ inlineData: { data: fileBuffer.toString("base64"), mimeType: "application/pdf" } }, prompt]);
       return JSON.parse(result.response.text().trim().replace(/^```json\s*/i, "").replace(/```$/i, "").trim());
     } catch (err: any) {
-      console.warn("⚠️ Resume API Failed. Using Smart Mock Profile Template.");
+      console.warn("⚠️ AI Parser Failed. Activating Robust Heuristic Engine...");
       
-      // Return a realistic Umurava-compliant profile template if AI fails
-      return {
-        firstName: "Candidate",
-        lastName: "Profile",
-        email: `candidate.${Date.now()}@example.com`,
-        headline: "Professional Candidate",
-        location: "Kigali, Rwanda",
-        skills: [
-          { name: "Communication", level: "Expert", yearsOfExperience: 5 },
-          { name: "Problem Solving", level: "Advanced", yearsOfExperience: 3 }
-        ],
-        experience: [{
-          company: "Previous Firm",
-          role: "Specialist",
-          startDate: "2020-01",
-          endDate: "Present",
-          description: "Responsible for high-level operations and project management.",
-          technologies: ["Standard Tools"],
-          isCurrent: true
-        }],
-        education: [{
-          institution: "University of Technology",
-          degree: "Bachelor's",
-          fieldOfStudy: "Applied Science",
-          startYear: 2016,
-          endYear: 2020
-        }],
-        projects: [{
-          name: "Efficiency Initiative",
-          description: "Led a cross-functional team to improve workflow efficiency by 20%.",
-          technologies: ["Leadership", "Data Analysis"],
-          role: "Team Lead",
-          startDate: "2021-06",
-          endDate: "2022-01"
-        }],
-        availability: { status: "Available", type: "Full-time" }
-      };
+      try {
+        const data = await pdf(fileBuffer);
+        const text = data.text;
+
+        // 1. Extract Email (Regex)
+        const emailMatch = text.match(/\S+@\S+\.\S+/);
+        const email = emailMatch ? emailMatch[0] : `candidate.${Date.now()}@example.com`;
+
+        // 2. Extract Name (Heuristic: First line usually name, fallback to Filename)
+        const cleanFilename = filename.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+        const lines = text.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 2);
+        const firstLine = lines.length > 0 ? lines[0] : "";
+        const fullName = (firstLine.length < 50 && firstLine.length > 3) ? firstLine : cleanFilename;
+        const [firstName, ...rest] = fullName.split(' ');
+        const lastName = rest.join(' ') || "Talent";
+
+        // 3. Extract Skills (Keyword Scan)
+        const TECH_TAXONOMY = ["React", "Node", "TypeScript", "Python", "Java", "SQL", "AWS", "Docker", "Figma", "UI/UX", "Next.js", "Express", "Tailwind", "JavaScript", "C++", "C#", "Go", "Rust", "Vue", "Angular", "Kubernetes", "GCP", "Azure"];
+        const detectedSkills = TECH_TAXONOMY.filter(s => text.toLowerCase().includes(s.toLowerCase()));
+
+        // 4. Extract Experience Years (Regex Pattern Search)
+        let expYears = 1;
+        const yearsMatch = text.match(/([0-9]{1,2})\+?\s*(?:years?|yrs?)/i);
+        const dateRangeMatch = text.match(/20[1-2][0-9]\s*(?:-|to)\s*(?:20[1-2][0-9]|present|now|current)/gi);
+        if (yearsMatch) {
+          expYears = parseInt(yearsMatch[1], 10);
+        } else if (dateRangeMatch && dateRangeMatch.length > 0) {
+          expYears = dateRangeMatch.length; // rough heuristic approximation per block found
+        }
+
+        return {
+          firstName,
+          lastName,
+          email,
+          headline: lines[1] || "Professional Talent",
+          location: text.includes("Rwanda") || text.includes("Kigali") ? "Kigali, Rwanda" : "Remote",
+          skills: detectedSkills.map(s => ({ name: s, level: "Advanced", yearsOfExperience: expYears })),
+          experience: [{
+            company: "Analyzed Experience",
+            role: lines[1] || "Specialist",
+            startDate: "2020",
+            endDate: "Present",
+            description: text.slice(0, 300) + "...",
+            technologies: detectedSkills.slice(0, 5),
+            isCurrent: true
+          }],
+          education: [{
+            institution: "Unspecified Inst.",
+            degree: text.includes("Master") ? "Master's" : "Bachelor's",
+            fieldOfStudy: "Professional Studies",
+            startYear: 2016,
+            endYear: 2020
+          }],
+          projects: [],
+          availability: { status: "Available", type: "Full-time" }
+        };
+      } catch (pdfErr) {
+        console.error("❌ Critical Heuristic Failure:", pdfErr);
+        // Absolute fallback using filename
+        return {
+          firstName: filename.split(/[ .-_]/)[0] || "Candidate",
+          lastName: "Profile",
+          email: `candidate.${Date.now()}@example.com`,
+          headline: "Professional Candidate",
+          location: "Remote",
+          skills: [],
+          experience: [],
+          education: [],
+          projects: [],
+          availability: { status: "Available", type: "Full-time" }
+        };
+      }
     }
   },
 

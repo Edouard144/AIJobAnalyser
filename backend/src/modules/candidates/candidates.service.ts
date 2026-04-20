@@ -85,8 +85,8 @@ export const candidatesService = {
   },
 
   // ── Scenario 3: Parse PDF buffer using Gemini and insert candidate ────────
-  async insertFromPDF(jobId: string, fileBuffer: Buffer) {
-    const profile = await geminiService.parseResume(fileBuffer);
+  async insertFromPDF(jobId: string, fileBuffer: Buffer, filename: string = "Resume.pdf") {
+    const profile = await geminiService.parseResume(fileBuffer, filename);
     
     if (!profile) throw new Error("Failed to parse resume with AI");
 

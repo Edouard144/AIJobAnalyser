@@ -1,28 +1,118 @@
 import { api } from '@/lib/api';
 
+export interface CandidateSkill {
+  name: string;
+  level: string;
+  yearsOfExperience: number;
+}
+
+export interface CandidateLanguage {
+  name: string;
+  proficiency: string;
+}
+
+export interface CandidateExperience {
+  company: string;
+  role: string;
+  startDate?: string;
+  endDate?: string;
+  isCurrent?: boolean;
+  description?: string;
+  technologies?: string[];
+}
+
+export interface CandidateEducation {
+  institution: string;
+  degree: string;
+  fieldOfStudy?: string;
+  startYear?: number;
+  endYear?: number;
+}
+
+export interface CandidateProject {
+  name: string;
+  description?: string;
+  technologies?: string[];
+  role?: string;
+  link?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface CandidateCertification {
+  name: string;
+  issuer: string;
+  issueDate?: string;
+}
+
+export interface CandidateAvailability {
+  status: string;
+  type: string;
+  startDate?: string;
+}
+
+export interface CandidateSocialLinks {
+  linkedin?: string;
+  github?: string;
+  portfolio?: string;
+  [key: string]: string | undefined;
+}
+
 export interface Candidate {
   id: string;
   jobId: string;
+  
+  // Basic Info
+  firstName: string | null;
+  lastName: string | null;
   fullName: string;
   email: string | null;
   phone: string | null;
-  skills: string[];
-  experienceYears: number;
+  headline: string | null;
+  bio: string | null;
+  location: string | null;
+  
+  // Structured Data (Umurava Spec)
+  skills: CandidateSkill[];
+  languages? : CandidateLanguage[];
+  experience: CandidateExperience[];
+  education: CandidateEducation[];
+  projects: CandidateProject[];
+  certifications?: CandidateCertification[];
+  availability?: CandidateAvailability | null;
+  socialLinks?: CandidateSocialLinks | null;
+  
+  // Internal Tracking
+  experienceYears: number | null;
   educationLevel: string | null;
   currentPosition: string | null;
   resumeUrl: string | null;
   source: 'umurava' | 'external';
   profileData: Record<string, unknown> | null;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 export interface CandidateInput {
+  firstName?: string;
+  lastName?: string;
   fullName: string;
   email?: string;
   phone?: string;
-  skills: string[];
-  experienceYears: number;
+  headline?: string;
+  bio?: string;
+  location?: string;
+  skills?: CandidateSkill[];
+  languages?: CandidateLanguage[];
+  experience?: CandidateExperience[];
+  education?: CandidateEducation[];
+  projects?: CandidateProject[];
+  certifications?: CandidateCertification[];
+  availability?: CandidateAvailability;
+  socialLinks?: CandidateSocialLinks;
+  
+  // Internal overrides
+  experienceYears?: number;
   educationLevel?: string;
   currentPosition?: string;
   resumeUrl?: string;

@@ -591,6 +591,10 @@ export default function JobDetail() {
                 className="bg-card border border-border rounded-2xl p-8 max-w-md w-full shadow-elevated"
               >
                 <h2 className="text-xl font-bold text-foreground mb-2">{t('job.screening_title')}</h2>
+                <div className="bg-primary/10 border border-primary/20 rounded-lg p-2.5 flex items-center justify-center gap-2 mb-4">
+                  <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                  <span className="text-xs font-bold text-primary tracking-wide uppercase">AI Powered by AIRECRUIT</span>
+                </div>
                 <p className="text-sm text-muted-foreground mb-6">{t('job.screening_desc')}</p>
                 <div className="flex gap-3 mb-6">
                   {[10, 20].map(n => (

@@ -57,7 +57,7 @@ export const candidatesController = {
 
       if (!req.file) { sendError(res, "No PDF file uploaded", 400); return; }
 
-      const result = await candidatesService.insertFromPDF(jobId, req.file.buffer);
+      const result = await candidatesService.insertFromPDF(jobId, req.file.buffer, req.file.originalname);
       sendSuccess(res, { inserted: 1, candidates: [result] }, "PDF resume parsed and candidate added", 201);
     } catch (err: any) {
       sendError(res, err.message, 400);
