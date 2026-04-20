@@ -75,8 +75,9 @@ export default function JobDetail() {
       await dispatch(uploadCsvAction({ jobId: id, file })).unwrap();
       toast.success(`Candidates uploaded successfully`);
     } catch (error: any) {
-      toast.error('Failed to upload CSV');
-      console.error('CSV upload error:', error.message || error);
+      const errorMsg = error?.message || error?.data?.message || 'Failed to upload CSV';
+      toast.error(errorMsg);
+      console.error('CSV upload error:', errorMsg, error);
     }
   }, [dispatch, id]);
 

@@ -1,13 +1,12 @@
-import { VertexAI } from "@google-cloud/vertexai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { env } from "../../config/env";
 import Groq from "groq-sdk";
 const pdf = require("pdf-parse");
 
-const vertexAI = new VertexAI({ project: env.GCP_PROJECT_ID, location: env.GCP_LOCATION });
+const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
 const groq = new Groq({ apiKey: env.GROQ_API_KEY });
 
-const DEFAULT_MODEL = "gemini-1.5-flash";
-const model = vertexAI.getGenerativeModel({ model: DEFAULT_MODEL });
+const DEFAULT_MODEL = "gemini-2.0-flash";
 
 export interface AIResult {
   candidateId: string;
@@ -61,7 +60,6 @@ export interface UmuravaProfile {
 }
 
 export const geminiService = {
-
   async screenCandidates(
     job: {
       title: string;
@@ -86,17 +84,17 @@ REQUIRED EDUCATION: ${job.educationLevel || "N/A"}
 
 CANDIDATES PROFILE DATA:
 ${JSON.stringify(
-        candidates.map(c => ({
-          id: c.id,
-          name: c.fullName,
-          skills: c.skills,
-          exp: c.experienceYears,
-          location: c.location,
-          experience: c.experience,
-          education: c.education,
-          projects: c.projects
-        })).slice(0, 50)
-      )}
+  candidates.map(c => ({
+    id: c.id,
+    name: c.fullName,
+    skills: c.skills,
+    exp: c.experienceYears,
+    location: c.location,
+    experience: c.experience,
+    education: c.education,
+    projects: c.projects
+  })).slice(0, 50)
+)}
 
 You must evaluate each candidate across multiple dimensions (skills match, experience depth, educational relevance, and project alignment).
 Calculate a match score out of 100. Provide clear natural language reasoning via strengths and gaps to ensure "Humans stay in control" of the final decision.
@@ -113,8 +111,10 @@ OUTPUT STRICT JSON FORMAT:
   }
 ]
 `;
+    try {
 
-      const result = await model.generateContent(prompt);
+      const geminiModel = genAI.getGenerativeModel({ model: DEFAULT_MODEL });
+      const result = await geminiModel.generateContent(prompt);
       const rawText = result.response.candidates?.[0]?.content?.parts?.[0]?.text || "";
       const text = rawText.trim().replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
       const parsed = JSON.parse(text);
@@ -210,7 +210,8 @@ OUTPUT STRICT JSON FORMAT:
   async parseResume(fileBuffer: Buffer, filename: string = "Resume.pdf"): Promise<UmuravaProfile> {
     try {
       const prompt = `Extract UMURAVA COMPLIANT JSON from resume.`;
-      const result = await model.generateContent({
+      const geminiModel = genAI.getGenerativeModel({ model: DEFAULT_MODEL });
+      const result = await geminiModel.generateContent({
         contents: [{
           role: 'user',
           parts: [
@@ -319,7 +320,8 @@ Focus on their specific gaps or how their unique projects relate to the job.
 RETURN ONLY A JSON ARRAY OF STRINGS.
 `;
     try {
-      const result = await model.generateContent(prompt);
+      const geminiModel = genAI.getGenerativeModel({ model: DEFAULT_MODEL });
+      const result = await geminiModel.generateContent(prompt);
       const rawText = result.response.candidates?.[0]?.content?.parts?.[0]?.text || "";
       const text = rawText.trim().replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
       return JSON.parse(text);
