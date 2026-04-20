@@ -120,10 +120,13 @@ export const fetchJobs = createAsyncThunk('jobs/fetchAll', async (_, { rejectWit
     const jobsWithDetails = await Promise.all(
       apiJobs.map(async (apiJob: any) => {
       try {
-        const [apiCandidates, apiResults] = await Promise.all([
-          candidatesService.getByJob(apiJob.id).catch(() => []),
+        const [candidatesResponse, resultsResponse] = await Promise.all([
+          candidatesService.getByJob(apiJob.id).catch(() => ({ data: [] })),
           screeningService.getResults(apiJob.id).catch(() => []),
         ]);
+
+        const apiCandidates = Array.isArray(candidatesResponse) ? candidatesResponse : (candidatesResponse.data || []);
+        const apiResults = Array.isArray(resultsResponse) ? resultsResponse : [];
         
         const candidates = apiCandidates.map(convertApiCandidate);
         const results = apiResults.map(convertApiScreeningResult);
@@ -194,18 +197,21 @@ export const updateJob = createAsyncThunk('jobs/update', async ({ id, data }: { 
 
 export const addCandidatesAction = createAsyncThunk('jobs/addCandidates', async ({ jobId, candidates }: { jobId: string, candidates: any[] }) => {
   const response = await candidatesService.bulkInsert(jobId, candidates);
-  return { jobId, candidates: response.candidates.map(convertApiCandidate) };
+  const insertedCandidates = Array.isArray(response) ? response : (response.candidates || []);
+  return { jobId, candidates: insertedCandidates.map(convertApiCandidate) };
 });
 
 export const uploadCsvAction = createAsyncThunk('jobs/uploadCsv', async ({ jobId, file }: { jobId: string, file: File }) => {
   const response = await candidatesService.uploadCsv(jobId, file);
-  return { jobId, candidates: response.candidates.map(convertApiCandidate) };
+  const uploadedCandidates = Array.isArray(response.candidates) ? response.candidates : [];
+  return { jobId, candidates: uploadedCandidates.map(convertApiCandidate) };
 });
 
 export const uploadPdfAction = createAsyncThunk('jobs/uploadPdf', async ({ jobId, file }: { jobId: string, file: File }) => {
   // We will implement this endpoint in the backend later
   const response = await candidatesService.uploadPdf(jobId, file);
-  return { jobId, candidates: response.candidates.map(convertApiCandidate) };
+  const uploadedCandidates = Array.isArray(response.candidates) ? response.candidates : [];
+  return { jobId, candidates: uploadedCandidates.map(convertApiCandidate) };
 });
 
 export const runScreeningAction = createAsyncThunk('jobs/runScreening', async ({ jobId, topN }: { jobId: string, topN: number }) => {

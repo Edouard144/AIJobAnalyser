@@ -89,18 +89,19 @@ function convertApiCandidate(apiCandidate: ApiCandidate): Candidate {
   };
 }
 
-function convertApiScreeningResult(apiResult: ApiScreeningResult): ScreeningResult {
+function convertApiScreeningResult(apiResult: any): ScreeningResult {
+  const candidateName = apiResult.candidate.fullName || `${apiResult.candidate.firstName || ''} ${apiResult.candidate.lastName || ''}`.trim() || 'Unknown Candidate';
   return {
     candidateId: apiResult.candidate.id,
-    candidateName: apiResult.candidate.fullName,
+    candidateName: candidateName,
     position: apiResult.candidate.currentPosition || 'Candidate',
     rank: apiResult.rank,
     score: parseFloat(apiResult.score),
-    strengths: apiResult.strengths,
-    gaps: apiResult.gaps,
-    recommendation: apiResult.recommendation,
+    strengths: Array.isArray(apiResult.strengths) ? apiResult.strengths : [],
+    gaps: Array.isArray(apiResult.gaps) ? apiResult.gaps : [],
+    recommendation: apiResult.recommendation || '',
     shortlisted: false,
-    whyNot: apiResult.gaps.length > 0 ? apiResult.gaps.join(', ') : undefined,
+    whyNot: apiResult.gaps?.length > 0 ? apiResult.gaps.join(', ') : undefined,
   };
 }
 

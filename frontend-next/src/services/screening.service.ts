@@ -10,6 +10,8 @@ export interface ScreeningResult {
   screenedAt: string;
   candidate: {
     id: string;
+    firstName: string | null;
+    lastName: string | null;
     fullName: string;
     email: string | null;
     skills: string[];
