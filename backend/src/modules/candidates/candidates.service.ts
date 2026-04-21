@@ -22,12 +22,12 @@ export const candidatesService = {
 
   // ── Scenario 1: Bulk insert structured Umurava profiles ───────────────────
   async bulkInsert(jobId: string, inputs: CandidateInput[]) {
-    // Transform inputs to proper format
+    // Transform inputs to proper format (Umurava Schema)
     const transformed = inputs.map((c: any) => {
       // Handle name fields
-      const firstName = c.firstName || c.name?.split(' ')[0] || '';
-      const lastName = c.lastName || c.name?.split(' ').slice(1).join(' ') || '';
-      const fullName = c.fullName || `${firstName} ${lastName}`.trim() || 'Unknown';
+      const firstName = c.firstName || '';
+      const lastName = c.lastName || '';
+      const fullName = c.fullName || c.name || `${firstName} ${lastName}`.trim() || 'Unknown';
       
       // Handle skills - convert strings to objects
       let skills: any[] = [];
@@ -36,9 +36,79 @@ export const candidatesService = {
           if (typeof s === 'string') {
             return { name: s, level: 'Intermediate', yearsOfExperience: 1 };
           }
-          return s;
+          return {
+            name: s.name || s.skill || '',
+            level: s.level || 'Intermediate',
+            yearsOfExperience: s.yearsOfExperience || 1
+          };
         });
       }
+      
+      // Handle languages
+      const languages = Array.isArray(c.languages) ? c.languages.map((l: any) => ({
+        name: l.name || l.language || '',
+        proficiency: l.proficiency || 'Fluent'
+      })) : [];
+
+      // Handle experience
+      const experience = Array.isArray(c.experience) ? c.experience.map((e: any) => ({
+        company: e.company || '',
+        role: e.role || e.position || '',
+        startDate: e.startDate || '',
+        endDate: e.endDate || (e.isCurrent ? 'Present' : ''),
+        description: e.description || '',
+        technologies: Array.isArray(e.technologies) ? e.technologies : [],
+        isCurrent: e.isCurrent || false
+      })) : [];
+
+      // Handle education
+      const education = Array.isArray(c.education) ? c.education.map((e: any) => ({
+        institution: e.institution || '',
+        degree: e.degree || '',
+        fieldOfStudy: e.fieldOfStudy || e.field || '',
+        startYear: e.startYear || 0,
+        endYear: e.endYear || 0
+      })) : [];
+
+      // Handle projects
+      const projects = Array.isArray(c.projects) ? c.projects.map((p: any) => ({
+        name: p.name || '',
+        description: p.description || '',
+        technologies: Array.isArray(p.technologies) ? p.technologies : [],
+        role: p.role || '',
+        link: p.link || p.url || '',
+        startDate: p.startDate || '',
+        endDate: p.endDate || ''
+      })) : [];
+
+      // Handle certifications
+      const certifications = Array.isArray(c.certifications) ? c.certifications.map((cert: any) => ({
+        name: cert.name || '',
+        issuer: cert.issuer || '',
+        issueDate: cert.issueDate || ''
+      })) : [];
+
+      // Handle availability
+      const availability = c.availability ? {
+        status: c.availability.status || 'Available',
+        type: c.availability.type || 'Full-time',
+        startDate: c.availability.startDate || ''
+      } : { status: 'Available', type: 'Full-time' };
+
+      // Calculate years of experience from experience array
+      const calculateYears = (exp: any[]): number => {
+        return exp.reduce((total: number, e: any) => {
+          if (e.isCurrent) {
+            const start = parseInt(e.startDate?.split('-')[0] || '0');
+            return total + (start > 0 ? new Date().getFullYear() - start : 0);
+          }
+          const start = parseInt(e.startDate?.split('-')[0] || '0');
+          const end = e.endDate === 'Present' ? new Date().getFullYear() : parseInt(e.endDate?.split('-')[0] || '0');
+          return total + (end > start ? end - start : 0);
+        }, 0);
+      };
+
+      const expYears = experience.length > 0 ? calculateYears(experience) : (Number(c.experienceYears) || 0);
       
       return {
         jobId,
@@ -47,8 +117,18 @@ export const candidatesService = {
         fullName,
         email: c.email || null,
         phone: c.phone || null,
+        headline: c.headline || null,
+        bio: c.bio || null,
+        location: c.location || null,
         skills: skills.length > 0 ? skills : [],
-        experienceYears: Number(c.experienceYears || c.experience || 0),
+        languages: languages.length > 0 ? languages : [],
+        experience: experience.length > 0 ? experience : [],
+        education: education.length > 0 ? education : [],
+        projects: projects.length > 0 ? projects : [],
+        certifications: certifications.length > 0 ? certifications : [],
+        availability: availability,
+        socialLinks: c.socialLinks || {},
+        experienceYears: expYears > 0 ? expYears : 0,
         educationLevel: c.educationLevel || c.education || null,
         currentPosition: c.currentPosition || c.position || null,
         source: c.source === 'umurava' ? 'umurava' : 'external',

@@ -135,21 +135,111 @@ export default function JobDetail() {
     try {
       const parsed = JSON.parse(jsonInput);
       const candidates = (Array.isArray(parsed) ? parsed : [parsed]).map((c: Record<string, any>) => {
-        // Convert skills to proper format
-        const skillNames = Array.isArray(c.skills) ? c.skills : 
-          typeof c.skills === 'string' ? c.skills.split(',').map((s: string) => s.trim()) : [];
-        const skills = skillNames.map((name: string) => ({
-          name: name,
-          level: "Intermediate",
-          yearsOfExperience: 1
-        }));
-        
+        // Handle skills - convert strings to objects, or keep existing format
+        let skills: any[] = [];
+        if (Array.isArray(c.skills)) {
+          skills = c.skills.map((s: any) => {
+            if (typeof s === 'string') {
+              return { name: s, level: "Intermediate", yearsOfExperience: 1 };
+            }
+            return { 
+              name: s.name || s.skill || '', 
+              level: s.level || "Intermediate", 
+              yearsOfExperience: s.yearsOfExperience || 1 
+            };
+          });
+        } else if (typeof c.skills === 'string') {
+          skills = c.skills.split(',').map((s: string) => ({
+            name: s.trim(),
+            level: "Intermediate",
+            yearsOfExperience: 1
+          }));
+        }
+
+        // Handle languages
+        const languages = Array.isArray(c.languages) ? c.languages.map((l: any) => ({
+          name: l.name || l.language || '',
+          proficiency: l.proficiency || "Fluent"
+        })) : [];
+
+        // Handle experience
+        const experience = Array.isArray(c.experience) ? c.experience.map((e: any) => ({
+          company: e.company || '',
+          role: e.role || e.position || '',
+          startDate: e.startDate || e.start_date || '',
+          endDate: e.endDate || e.end_date || (e.isCurrent ? 'Present' : ''),
+          description: e.description || '',
+          technologies: Array.isArray(e.technologies) ? e.technologies : [],
+          isCurrent: e.isCurrent || e.is_current || false
+        })) : [];
+
+        // Handle education
+        const education = Array.isArray(c.education) ? c.education.map((e: any) => ({
+          institution: e.institution || '',
+          degree: e.degree || '',
+          fieldOfStudy: e.fieldOfStudy || e.field || '',
+          startYear: e.startYear || e.start_year || 0,
+          endYear: e.endYear || e.end_year || 0
+        })) : [];
+
+        // Handle projects
+        const projects = Array.isArray(c.projects) ? c.projects.map((p: any) => ({
+          name: p.name || '',
+          description: p.description || '',
+          technologies: Array.isArray(p.technologies) ? p.technologies : [],
+          role: p.role || '',
+          link: p.link || p.url || '',
+          startDate: p.startDate || '',
+          endDate: p.endDate || ''
+        })) : [];
+
+        // Handle certifications
+        const certifications = Array.isArray(c.certifications) ? c.certifications.map((cert: any) => ({
+          name: cert.name || '',
+          issuer: cert.issuer || '',
+          issueDate: cert.issueDate || cert.date || ''
+        })) : [];
+
+        // Handle availability
+        const availability = c.availability ? {
+          status: c.availability.status || "Available",
+          type: c.availability.type || "Full-time",
+          startDate: c.availability.startDate || ''
+        } : { status: "Available", type: "Full-time" };
+
+        // Handle social links
+        const socialLinks = c.socialLinks || {};
+
+        // Calculate total years of experience
+        const experienceYears = experience.reduce((total: number, exp: any) => {
+          if (exp.isCurrent) {
+            const start = parseInt(exp.startDate?.split('-')[0] || '0');
+            return total + (start > 0 ? new Date().getFullYear() - start : 0);
+          }
+          const start = parseInt(exp.startDate?.split('-')[0] || '0');
+          const end = exp.endDate === 'Present' ? new Date().getFullYear() : parseInt(exp.endDate?.split('-')[0] || '0');
+          return total + (end > start ? end - start : 0);
+        }, 0);
+
         return {
+          firstName: c.firstName || c.first_name || '',
+          lastName: c.lastName || c.last_name || '',
           fullName: c.fullName || c.name || `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Unknown',
           email: c.email || '',
+          phone: c.phone || '',
+          headline: c.headline || '',
+          bio: c.bio || '',
+          location: c.location || '',
           skills: skills,
-          experienceYears: Number(c.experienceYears || c.experience) || 0,
-          educationLevel: c.educationLevel || c.education || 'any',
+          languages: languages,
+          experience: experience,
+          education: education,
+          projects: projects,
+          certifications: certifications,
+          availability: availability,
+          socialLinks: socialLinks,
+          experienceYears: experienceYears > 0 ? experienceYears : (Number(c.experienceYears) || 0),
+          educationLevel: c.educationLevel || c.education || '',
           currentPosition: c.currentPosition || c.position || '',
           source: 'external' as const,
         };
