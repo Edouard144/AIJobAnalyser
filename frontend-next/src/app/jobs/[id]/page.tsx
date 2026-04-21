@@ -42,9 +42,21 @@ export default function JobDetail() {
   const [topN, setTopN] = useState(10);
   const [isScreening, setIsScreening] = useState(false);
   const [screeningMsg, setScreeningMsg] = useState(0);
-  const [isDragging, setIsDragging] = useState<null | 'csv' | 'pdf'>(null);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
   const [expandedWhyNot, setExpandedWhyNot] = useState<Record<string, boolean>>({});
   const [selectedCandidate, setSelectedCandidate] = useState<any>(null);
+  const [editStatus, setEditStatus] = useState<string>(job?.status || 'open');
+
+  const handleStatusChange = async (newStatus: string) => {
+    try {
+      await dispatch(updateJobAction({ id, data: { status: newStatus } })).unwrap();
+      setEditStatus(newStatus as any);
+      toast.success('Status updated');
+    } catch (error: any) {
+      toast.error('Failed to update status');
+      console.error('Update status error:', error.message || error);
+    }
+  };
   const fileRef = useRef<HTMLInputElement>(null);
   const pdfRef = useRef<HTMLInputElement>(null);
 
@@ -122,15 +134,26 @@ export default function JobDetail() {
   const handleJsonSubmit = async () => {
     try {
       const parsed = JSON.parse(jsonInput);
-      const candidates = (Array.isArray(parsed) ? parsed : [parsed]).map((c: Record<string, any>) => ({
-        fullName: c.fullName || c.name || `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Unknown',
-        email: c.email || '',
-        skills: Array.isArray(c.skills) ? c.skills : typeof c.skills === 'string' ? c.skills.split(',').map((s: string) => s.trim()) : [],
-        experienceYears: Number(c.experienceYears || c.experience) || 0,
-        educationLevel: c.educationLevel || c.education || 'any',
-        source: 'umurava' as const,
-        currentPosition: c.currentPosition || c.position || '',
-      }));
+      const candidates = (Array.isArray(parsed) ? parsed : [parsed]).map((c: Record<string, any>) => {
+        // Convert skills to proper format
+        const skillNames = Array.isArray(c.skills) ? c.skills : 
+          typeof c.skills === 'string' ? c.skills.split(',').map((s: string) => s.trim()) : [];
+        const skills = skillNames.map((name: string) => ({
+          name: name,
+          level: "Intermediate",
+          yearsOfExperience: 1
+        }));
+        
+        return {
+          fullName: c.fullName || c.name || `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Unknown',
+          email: c.email || '',
+          skills: skills,
+          experienceYears: Number(c.experienceYears || c.experience) || 0,
+          educationLevel: c.educationLevel || c.education || 'any',
+          currentPosition: c.currentPosition || c.position || '',
+          source: 'external' as const,
+        };
+      });
       await dispatch(addCandidatesAction({ jobId: id, candidates })).unwrap();
       setJsonInput('');
       toast.success(`${candidates.length} candidates added`);
@@ -220,7 +243,15 @@ export default function JobDetail() {
                   <span>{job.experience}yr+ experience</span>
                   <span className="flex items-center gap-1"><GraduationCap className="h-4 w-4" /> {t(`job.edu_${job.education}`)}</span>
                   <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[job.status]}`}>
-                    {t(`job.status_${job.status}`)}
+                    <select 
+                      value={editStatus} 
+                      onChange={(e) => handleStatusChange(e.target.value)}
+                      className={`bg-transparent border-none cursor-pointer ${statusColors[job.status]}`}
+                    >
+                      <option value="open">{t('job.status_open')}</option>
+                      <option value="screening">{t('job.status_screening')}</option>
+                      <option value="closed">{t('job.status_closed')}</option>
+                    </select>
                   </span>
                 </div>
                 {job.description && <p className="text-muted-foreground text-sm max-w-2xl">{job.description}</p>}
@@ -284,11 +315,11 @@ export default function JobDetail() {
                     if (f) handleCsvUpload(f); 
                   }}
                   className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
-                    isDragging === 'csv' ? 'border-primary bg-primary/5 scale-[1.02]' : 'border-border hover:border-primary/40'
+                    isDragging ? 'border-primary bg-primary/5 scale-[1.02]' : 'border-border hover:border-primary/40'
                   }`}
                 >
-                  <Upload className={`h-8 w-8 mx-auto mb-2 transition-colors ${isDragging === 'csv' ? 'text-primary' : 'text-muted-foreground'}`} />
-                  <p className="text-sm text-muted-foreground">{isDragging === 'csv' ? 'Drop it here!' : t('job.drop_csv')}</p>
+                  <Upload className={`h-8 w-8 mx-auto mb-2 transition-colors ${isDragging ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <p className="text-sm text-muted-foreground">{isDragging ? 'Drop it here!' : t('job.drop_csv')}</p>
                 </div>
                 <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleCsvUpload(f); }} />
               </div>
@@ -297,21 +328,10 @@ export default function JobDetail() {
                 <h3 className="font-bold text-foreground mb-3">AI PDF Parse</h3>
                 <div
                   onClick={() => pdfRef.current?.click()}
-                  onDragOver={e => { e.preventDefault(); e.stopPropagation(); setIsDragging('pdf'); }}
-                  onDragLeave={() => setIsDragging(null)}
-                  onDrop={e => { 
-                    e.preventDefault(); 
-                    e.stopPropagation(); 
-                    setIsDragging(null); 
-                    const f = e.dataTransfer.files[0]; 
-                    if (f) handlePdfUpload(f); 
-                  }}
-                  className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
-                    isDragging === 'pdf' ? 'border-primary bg-primary/5 scale-[1.02]' : 'border-border hover:border-primary/40'
-                  }`}
+                  className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all border-border hover:border-primary/40"
                 >
-                  <Sparkles className={`h-8 w-8 mx-auto mb-2 transition-colors ${isDragging === 'pdf' ? 'text-primary' : 'text-muted-foreground'}`} />
-                  <p className="text-sm text-muted-foreground">{isDragging === 'pdf' ? 'Drop PDF here!' : 'Drop PDF Resume'}</p>
+                  <Sparkles className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">Drop PDF Resume</p>
                 </div>
                 <input ref={pdfRef} type="file" accept=".pdf" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handlePdfUpload(f); }} />
                 <p className="text-[10px] text-muted-foreground mt-3 text-center italic">Uses Gemini 2.0 & Smart Rescue Fallback for high accuracy</p>

@@ -77,10 +77,18 @@ export const screeningService = {
       };
     });
 
-    const saved = await db
+const saved = await db
       .insert(screeningResults)
       .values(toInsert)
       .returning();
+
+    // 6. Update job status to "screening" after running screening
+    await db
+      .update(jobs)
+      .set({ status: "screening" })
+      .where(eq(jobs.id, jobId));
+
+    console.log('✅ Job status updated to: screening');
 
     return {
       jobId,

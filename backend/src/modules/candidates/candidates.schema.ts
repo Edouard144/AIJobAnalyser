@@ -1,28 +1,30 @@
 // candidates schema
 import { z } from "zod";
 
-// Skill entry structure
-const skillSchema = z.object({
-  name: z.string().min(1),
-  level: z.string().optional().default("Intermediate"),
-  yearsOfExperience: z.number().int().min(0).default(1),
-});
+// Flexible skill - accepts string, object, or anything with a name property
+const skillSchema = z.any();
 
-// Single structured candidate (Scenario 1 — Umurava profile)
+// Single structured candidate (flexible for JSON import)
 export const candidateSchema = z.object({
-  fullName:        z.string().min(2),
-  email:           z.string().email().optional(),
+  fullName:        z.string().min(2).optional(),
+  firstName:       z.string().optional(),
+  lastName:        z.string().optional(),
+  name:            z.string().optional(),
+  email:           z.string().optional(),
   phone:           z.string().optional(),
-  skills:          z.array(skillSchema).min(1, "At least one skill required"),
-  experienceYears: z.number().int().min(0),
+  skills:          z.any().optional(),
+  experienceYears: z.number().optional().default(0),
+  experience:      z.number().optional().default(0),
   educationLevel:  z.string().optional(),
+  education:       z.string().optional(),
   currentPosition: z.string().optional(),
-  profileData: z.object({}).passthrough().optional(),
-  resumeUrl:       z.string().url().optional(),
-  source:          z.enum(["umurava", "external"]).default("umurava"),
+  position:        z.string().optional(),
+  profileData: z.any().optional(),
+  resumeUrl:       z.string().optional(),
+  source:          z.string().optional().default("external"),
 });
 
-// Bulk insert — array of candidates (Scenario 1)
+// Bulk insert — array of candidates (flexible)
 export const bulkCandidatesSchema = z.object({
   candidates: z.array(candidateSchema).min(1, "At least one candidate required"),
 });

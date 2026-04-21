@@ -22,10 +22,42 @@ export const candidatesService = {
 
   // ── Scenario 1: Bulk insert structured Umurava profiles ───────────────────
   async bulkInsert(jobId: string, inputs: CandidateInput[]) {
-    // Insert all candidates in one DB call — much faster than looping
+    // Transform inputs to proper format
+    const transformed = inputs.map((c: any) => {
+      // Handle name fields
+      const firstName = c.firstName || c.name?.split(' ')[0] || '';
+      const lastName = c.lastName || c.name?.split(' ').slice(1).join(' ') || '';
+      const fullName = c.fullName || `${firstName} ${lastName}`.trim() || 'Unknown';
+      
+      // Handle skills - convert strings to objects
+      let skills: any[] = [];
+      if (Array.isArray(c.skills)) {
+        skills = c.skills.map((s: any) => {
+          if (typeof s === 'string') {
+            return { name: s, level: 'Intermediate', yearsOfExperience: 1 };
+          }
+          return s;
+        });
+      }
+      
+      return {
+        jobId,
+        firstName,
+        lastName,
+        fullName,
+        email: c.email || null,
+        phone: c.phone || null,
+        skills: skills.length > 0 ? skills : [],
+        experienceYears: Number(c.experienceYears || c.experience || 0),
+        educationLevel: c.educationLevel || c.education || null,
+        currentPosition: c.currentPosition || c.position || null,
+        source: c.source === 'umurava' ? 'umurava' : 'external',
+      };
+    });
+
     const inserted = await db
       .insert(candidates)
-      .values(inputs.map((c) => ({ ...c, jobId })))
+      .values(transformed)
       .returning();
 
     return inserted;
