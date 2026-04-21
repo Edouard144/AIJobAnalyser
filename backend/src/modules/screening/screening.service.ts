@@ -50,37 +50,40 @@ export const screeningService = {
     }
     
     const toInsert = aiResults.map((r, index) => {
-      // Use index position directly - rank 1 = index 0, rank 2 = index 1, etc.
-      // This is more reliable than relying on AI to return correct ranks
       const targetIndex = index < allCandidates.length ? index : 0;
       const candidate = allCandidates[targetIndex];
       
       if (!candidate || !candidate.id) {
-        console.error(`⚠️ No candidate found at index ${index}`);
+        console.error(`⚠️ No candidate found at index ${index}, candidates length:`, allCandidates.length);
         throw new Error(`Invalid candidate at index ${index}`);
       }
       
-      console.log(`🔗 Mapping index ${index} to candidate:`, candidate.fullName, candidate.id);
+      console.log(`🔗 Mapping result ${index} to candidate:`, candidate.fullName, 'ID:', candidate.id);
       
       const strengths = Array.isArray(r.strengths) ? r.strengths : [];
       const gaps = Array.isArray(r.gaps) ? r.gaps : [];
       
       return {
-        jobId,
-        candidateId:    candidate.id,
-        rank:           index + 1,
-        score:          String(Number(r.score || 50).toFixed(2)),
-        strengths:      strengths,
-        gaps:           gaps,
+        jobId: jobId,
+        candidateId: candidate.id,
+        rank: index + 1,
+        score: String(Number(r.score || 50).toFixed(2)),
+        strengths: strengths,
+        gaps: gaps,
         recommendation: r.recommendation || '',
-        rawAiOutput:    JSON.stringify(r),
+        rawAiOutput: JSON.stringify(r),
       };
     });
 
-const saved = await db
+    console.log('📝 About to insert:', toInsert.length, 'results');
+    console.log('📝 First insert values:', JSON.stringify(toInsert[0], null, 2));
+
+    const saved = await db
       .insert(screeningResults)
       .values(toInsert)
       .returning();
+
+    console.log('✅ Inserted:', saved.length, 'screening results');
 
     // 6. Update job status to "screening" after running screening
     await db
