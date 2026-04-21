@@ -10,7 +10,9 @@ export const createJobSchema = z.object({
   location:        z.string().optional(),
 });
 
-export const updateJobSchema = createJobSchema.partial(); // all fields optional for PATCH
+export const updateJobSchema = createJobSchema.partial().extend({
+  status: z.enum(["open", "screening", "closed"]).optional(),
+}); // all fields optional for PATCH
 
 export const updateJobStatusSchema = z.object({
   status: z.enum(["open", "screening", "closed"]),

@@ -28,6 +28,7 @@ export interface UpdateJobInput {
   title?: string;
   description?: string;
   location?: string;
+  status?: 'open' | 'screening' | 'closed';
   requiredSkills?: string[];
   experienceYears?: number;
   educationLevel?: string;
