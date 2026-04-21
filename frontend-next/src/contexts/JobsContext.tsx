@@ -80,8 +80,10 @@ function convertApiCandidate(apiCandidate: ApiCandidate): Candidate {
     id: apiCandidate.id,
     name: apiCandidate.fullName,
     email: apiCandidate.email || '',
-    skills: apiCandidate.skills,
-    experience: apiCandidate.experienceYears,
+    skills: Array.isArray(apiCandidate.skills) 
+      ? apiCandidate.skills.map((s: any) => typeof s === 'string' ? s : s.name) 
+      : [],
+    experience: apiCandidate.experienceYears || 0,
     education: apiCandidate.educationLevel || 'any',
     source: apiCandidate.source === 'umurava' ? 'Umurava' : 'External',
     addedAt: apiCandidate.createdAt,
@@ -192,7 +194,7 @@ export function JobsProvider({ children }: { children: ReactNode }) {
     const candidateInputs = candidates.map(c => ({
       fullName: c.name,
       email: c.email || undefined,
-      skills: c.skills,
+      skills: c.skills.map((name: string) => ({ name, level: "Intermediate", yearsOfExperience: 1 })),
       experienceYears: c.experience,
       educationLevel: c.education !== 'any' ? c.education : undefined,
       currentPosition: c.position || undefined,
