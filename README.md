@@ -24,7 +24,7 @@ An advanced, AI-powered candidate screening and recruitment platform designed fo
 
 ## 📋 Talent Profile Schema
 
-The platform supports the complete Umurava Talent Profile Schema:
+The platform supports the complete Talent Profile Schema:
 
 | Section | Fields |
 |---------|--------|
