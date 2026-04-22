@@ -1,34 +1,46 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Pencil, Upload, MapPin, GraduationCap, Sparkles, CheckCircle, AlertTriangle, Download, ChevronDown } from 'lucide-react';
+import {
+  Pencil, Upload, MapPin, GraduationCap, Sparkles,
+  CheckCircle, AlertTriangle, Download, ChevronDown, Plus, X, Loader2
+} from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend } from 'recharts';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@/store';
-import { 
-  fetchJobs, 
-  updateJob as updateJobAction, 
-  addCandidatesAction, 
-  uploadCsvAction, 
-  uploadPdfAction, 
-  runScreeningAction 
+import {
+  fetchJobs,
+  updateJob as updateJobAction,
+  addCandidatesAction,
+  uploadCsvAction,
+  uploadPdfAction,
+  runScreeningAction
 } from '@/store/slices/jobsSlice';
 import { logout as logoutAction } from '@/store/slices/authSlice';
 import toast from 'react-hot-toast';
 import CandidatePortfolioModal from '@/components/CandidatePortfolioModal';
+import { Button } from '@/components/ui/Button';
+import { Input, Textarea } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Label';
+import { Select } from '@/components/ui/Select';
+import { Card, CardContent, CardHeader } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { Alert } from '@/components/ui/Alert';
+import { Avatar } from '@/components/ui/Avatar';
 
 export default function JobDetail() {
   const { t } = useTranslation();
   const params = useParams();
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
-  
+
   const { user, isAuthenticated, loading: authLoading } = useSelector((state: RootState) => state.auth);
   const { jobs, loading: jobsLoading } = useSelector((state: RootState) => state.jobs);
-  
+
   const id = params.id as string;
   const job = jobs.find(j => j.id === id);
 
@@ -42,21 +54,11 @@ export default function JobDetail() {
   const [topN, setTopN] = useState(10);
   const [isScreening, setIsScreening] = useState(false);
   const [screeningMsg, setScreeningMsg] = useState(0);
-  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [expandedWhyNot, setExpandedWhyNot] = useState<Record<string, boolean>>({});
   const [selectedCandidate, setSelectedCandidate] = useState<any>(null);
   const [editStatus, setEditStatus] = useState<string>(job?.status || 'open');
 
-  const handleStatusChange = async (newStatus: string) => {
-    try {
-      await dispatch(updateJobAction({ id, data: { status: newStatus } })).unwrap();
-      setEditStatus(newStatus as any);
-      toast.success('Status updated');
-    } catch (error: any) {
-      toast.error('Failed to update status');
-      console.error('Update status error:', error.message || error);
-    }
-  };
   const fileRef = useRef<HTMLInputElement>(null);
   const pdfRef = useRef<HTMLInputElement>(null);
 
@@ -80,6 +82,17 @@ export default function JobDetail() {
     }, 1500);
     return () => clearInterval(interval);
   }, [isScreening, screeningMsgs.length]);
+
+  const handleStatusChange = async (newStatus: string) => {
+    try {
+      await dispatch(updateJobAction({ id, data: { status: newStatus } })).unwrap();
+      setEditStatus(newStatus);
+      toast.success('Status updated');
+    } catch (error: any) {
+      toast.error('Failed to update status');
+      console.error('Update status error:', error.message || error);
+    }
+  };
 
   const handleCsvUpload = useCallback(async (file: File) => {
     if (!id) return;
@@ -135,17 +148,16 @@ export default function JobDetail() {
     try {
       const parsed = JSON.parse(jsonInput);
       const candidates = (Array.isArray(parsed) ? parsed : [parsed]).map((c: Record<string, any>) => {
-        // Handle skills - convert strings to objects, or keep existing format
         let skills: any[] = [];
         if (Array.isArray(c.skills)) {
           skills = c.skills.map((s: any) => {
             if (typeof s === 'string') {
               return { name: s, level: "Intermediate", yearsOfExperience: 1 };
             }
-            return { 
-              name: s.name || s.skill || '', 
-              level: s.level || "Intermediate", 
-              yearsOfExperience: s.yearsOfExperience || 1 
+            return {
+              name: s.name || s.skill || '',
+              level: s.level || "Intermediate",
+              yearsOfExperience: s.yearsOfExperience || 1
             };
           });
         } else if (typeof c.skills === 'string') {
@@ -156,13 +168,11 @@ export default function JobDetail() {
           }));
         }
 
-        // Handle languages
         const languages = Array.isArray(c.languages) ? c.languages.map((l: any) => ({
           name: l.name || l.language || '',
           proficiency: l.proficiency || "Fluent"
         })) : [];
 
-        // Handle experience
         const experience = Array.isArray(c.experience) ? c.experience.map((e: any) => ({
           company: e.company || '',
           role: e.role || e.position || '',
@@ -173,7 +183,6 @@ export default function JobDetail() {
           isCurrent: e.isCurrent || e.is_current || false
         })) : [];
 
-        // Handle education
         const education = Array.isArray(c.education) ? c.education.map((e: any) => ({
           institution: e.institution || '',
           degree: e.degree || '',
@@ -182,7 +191,6 @@ export default function JobDetail() {
           endYear: e.endYear || e.end_year || 0
         })) : [];
 
-        // Handle projects
         const projects = Array.isArray(c.projects) ? c.projects.map((p: any) => ({
           name: p.name || '',
           description: p.description || '',
@@ -193,24 +201,20 @@ export default function JobDetail() {
           endDate: p.endDate || ''
         })) : [];
 
-        // Handle certifications
         const certifications = Array.isArray(c.certifications) ? c.certifications.map((cert: any) => ({
           name: cert.name || '',
           issuer: cert.issuer || '',
           issueDate: cert.issueDate || cert.date || ''
         })) : [];
 
-        // Handle availability
         const availability = c.availability ? {
           status: c.availability.status || "Available",
           type: c.availability.type || "Full-time",
           startDate: c.availability.startDate || ''
         } : { status: "Available", type: "Full-time" };
 
-        // Handle social links
         const socialLinks = c.socialLinks || {};
 
-        // Calculate total years of experience
         const experienceYears = experience.reduce((total: number, exp: any) => {
           if (exp.isCurrent) {
             const start = parseInt(exp.startDate?.split('-')[0] || '0');
@@ -283,7 +287,7 @@ export default function JobDetail() {
     a.click();
   };
 
-  const scoreColor = (score: number) => score >= 80 ? 'hsl(160, 88%, 30%)' : score >= 60 ? 'hsl(37, 91%, 55%)' : 'hsl(0, 72%, 51%)';
+  const scoreColor = (score: number) => score >= 80 ? 'hsl(var(--primary))' : score >= 60 ? 'hsl(var(--warning))' : 'hsl(var(--destructive))';
   const scoreColorClass = (score: number) => score >= 80 ? 'text-primary' : score >= 60 ? 'text-warning' : 'text-destructive';
 
   const statusColors: Record<string, string> = {
@@ -313,16 +317,31 @@ export default function JobDetail() {
   return (
     <div className="min-h-screen pt-24 pb-16">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        {/* Header Section */}
         {editing ? (
-          <div className="space-y-4 mb-8">
-            <input value={editTitle} onChange={e => setEditTitle(e.target.value)} className="text-3xl font-bold bg-background border border-input rounded-lg px-4 py-2 w-full text-foreground focus:ring-2 focus:ring-ring outline-none" />
-            <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} rows={3} className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground text-sm focus:ring-2 focus:ring-ring outline-none resize-none" />
-            <input value={editLocation} onChange={e => setEditLocation(e.target.value)} className="px-4 py-3 rounded-lg border border-input bg-background text-foreground text-sm focus:ring-2 focus:ring-ring outline-none" />
-            <div className="flex gap-2">
-              <button onClick={saveEdit} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-semibold btn-press">{t('common.save')}</button>
-              <button onClick={() => setEditing(false)} className="px-4 py-2 border border-border rounded-lg text-sm text-foreground btn-press">{t('job.cancel')}</button>
-            </div>
-          </div>
+          <Card className="mb-8">
+            <CardContent className="pt-6 space-y-4">
+              <Input
+                value={editTitle}
+                onChange={e => setEditTitle(e.target.value)}
+                className="text-3xl font-bold"
+              />
+              <Textarea
+                value={editDesc}
+                onChange={e => setEditDesc(e.target.value)}
+                rows={3}
+              />
+              <Input
+                value={editLocation}
+                onChange={e => setEditLocation(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <Button onClick={saveEdit}>{t('common.save')}</Button>
+                <Button variant="outline" onClick={() => setEditing(false)}>{t('job.cancel')}</Button>
+              </div>
+            </CardContent>
+          </Card>
         ) : (
           <div className="mb-8">
             <div className="flex items-start justify-between">
@@ -333,10 +352,10 @@ export default function JobDetail() {
                   <span>{job.experience}yr+ experience</span>
                   <span className="flex items-center gap-1"><GraduationCap className="h-4 w-4" /> {t(`job.edu_${job.education}`)}</span>
                   <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[job.status]}`}>
-                    <select 
-                      value={editStatus} 
+                    <select
+                      value={editStatus}
                       onChange={(e) => handleStatusChange(e.target.value)}
-                      className={`bg-transparent border-none cursor-pointer ${statusColors[job.status]}`}
+                      className="bg-transparent border-none cursor-pointer appearance-none"
                     >
                       <option value="open">{t('job.status_open')}</option>
                       <option value="screening">{t('job.status_screening')}</option>
@@ -346,13 +365,14 @@ export default function JobDetail() {
                 </div>
                 {job.description && <p className="text-muted-foreground text-sm max-w-2xl">{job.description}</p>}
               </div>
-              <button onClick={startEditing} className="p-2 rounded-lg hover:bg-accent transition-colors btn-press">
+              <Button variant="ghost" size="icon" onClick={startEditing}>
                 <Pencil className="h-4 w-4 text-muted-foreground" />
-              </button>
+              </Button>
             </div>
           </div>
         )}
 
+        {/* Tabs */}
         <div className="flex gap-6 border-b border-border mb-8">
           {(['candidates', 'results'] as const).map(t2 => (
             <button
@@ -367,6 +387,7 @@ export default function JobDetail() {
           ))}
         </div>
 
+        {/* Candidates Tab */}
         {tab === 'candidates' && (
           <div className="relative">
             {isScreening && (
@@ -377,74 +398,103 @@ export default function JobDetail() {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-              <div className="bg-card border border-border rounded-xl p-6 shadow-card">
-                <h3 className="font-bold text-foreground mb-3">Umurava Profiles</h3>
-                <textarea
-                  value={jsonInput}
-                  onChange={e => setJsonInput(e.target.value)}
-                  placeholder={t('job.json_placeholder')}
-                  rows={5}
-                  className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground text-sm focus:ring-2 focus:ring-ring outline-none resize-none mb-3 font-mono"
-                />
-                <button onClick={handleJsonSubmit} className="w-full py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold btn-press">
-                  {t('job.add_candidates')}
-                </button>
-              </div>
+              {/* JSON Input Card */}
+              <Card>
+                <CardHeader>
+                  <h3 className="font-bold text-foreground">Umurava Profiles</h3>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <textarea
+                    value={jsonInput}
+                    onChange={e => setJsonInput(e.target.value)}
+                    placeholder={t('job.json_placeholder')}
+                    rows={5}
+                    className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground text-sm focus:ring-2 focus:ring-ring outline-none resize-none font-mono"
+                  />
+                  <Button onClick={handleJsonSubmit} fullWidth>
+                    {t('job.add_candidates')}
+                  </Button>
+                </CardContent>
+              </Card>
 
-              <div className="bg-card border border-border rounded-xl p-6 shadow-card">
-                <h3 className="font-bold text-foreground mb-3">{t('job.upload_csv')}</h3>
-                <div
-                  onClick={() => fileRef.current?.click()}
-                  onDragOver={e => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
-                  onDragLeave={() => setIsDragging(false)}
-                  onDrop={e => { 
-                    e.preventDefault(); 
-                    e.stopPropagation(); 
-                    setIsDragging(false); 
-                    const f = e.dataTransfer.files[0]; 
-                    if (f) handleCsvUpload(f); 
-                  }}
-                  className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
-                    isDragging ? 'border-primary bg-primary/5 scale-[1.02]' : 'border-border hover:border-primary/40'
-                  }`}
-                >
-                  <Upload className={`h-8 w-8 mx-auto mb-2 transition-colors ${isDragging ? 'text-primary' : 'text-muted-foreground'}`} />
-                  <p className="text-sm text-muted-foreground">{isDragging ? 'Drop it here!' : t('job.drop_csv')}</p>
-                </div>
-                <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleCsvUpload(f); }} />
-              </div>
+              {/* CSV Upload Card */}
+              <Card>
+                <CardHeader>
+                  <h3 className="font-bold text-foreground">{t('job.upload_csv')}</h3>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div
+                    onClick={() => fileRef.current?.click()}
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsDragging(false);
+                      const f = e.dataTransfer.files[0];
+                      if (f) handleCsvUpload(f);
+                    }}
+                    className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+                      isDragging ? 'border-primary bg-primary/5 scale-[1.02]' : 'border-border hover:border-primary/40'
+                    }`}
+                  >
+                    <Upload className={`h-8 w-8 mx-auto mb-2 transition-colors ${isDragging ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <p className="text-sm text-muted-foreground">{isDragging ? 'Drop it here!' : t('job.drop_csv')}</p>
+                  </div>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept=".csv"
+                    className="hidden"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCsvUpload(f); }}
+                  />
+                </CardContent>
+              </Card>
 
-              <div className="bg-card border border-border rounded-xl p-6 shadow-card">
-                <h3 className="font-bold text-foreground mb-3">AI PDF Parse</h3>
-                <div
-                  onClick={() => pdfRef.current?.click()}
-                  className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all border-border hover:border-primary/40"
-                >
-                  <Sparkles className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">Drop PDF Resume</p>
-                </div>
-                <input ref={pdfRef} type="file" accept=".pdf" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handlePdfUpload(f); }} />
-                <p className="text-[10px] text-muted-foreground mt-3 text-center italic">Uses Gemini 2.0 & Smart Rescue Fallback for high accuracy</p>
-              </div>
+              {/* PDF Upload Card */}
+              <Card>
+                <CardHeader>
+                  <h3 className="font-bold text-foreground">AI PDF Parse</h3>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div
+                    onClick={() => pdfRef.current?.click()}
+                    className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all border-border hover:border-primary/40"
+                  >
+                    <Sparkles className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Drop PDF Resume</p>
+                  </div>
+                  <input
+                    ref={pdfRef}
+                    type="file"
+                    accept=".pdf"
+                    className="hidden"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePdfUpload(f); }}
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-3 text-center italic">
+                    Uses Gemini 2.0 & Smart Rescue Fallback for high accuracy
+                  </p>
+                </CardContent>
+              </Card>
             </div>
 
             {job.candidates.length > 0 && (
-              <div className="bg-card border border-border rounded-xl shadow-card overflow-hidden mb-24">
+              <Card className="overflow-hidden mb-24">
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase">Name</th>
-                        <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase">Email</th>
-                        <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase">{t('job.skills')}</th>
-                        <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase">Exp</th>
-                        <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase">Source</th>
+                      <tr className="border-b border-border bg-muted/30">
+                        <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Name</th>
+                        <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Email</th>
+                        <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('job.skills')}</th>
+                        <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Exp</th>
+                        <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Source</th>
                       </tr>
                     </thead>
                     <tbody>
                       {job.candidates.map(c => (
-                        <tr 
-                          key={c.id} 
+                        <tr
+                          key={c.id}
                           onClick={() => setSelectedCandidate(c)}
                           className="border-b border-border last:border-0 hover:bg-accent/50 cursor-pointer transition-all hover:border-l-4 hover:border-l-primary"
                         >
@@ -476,24 +526,26 @@ export default function JobDetail() {
                     </tbody>
                   </table>
                 </div>
-              </div>
+              </Card>
             )}
 
             {job.candidates.length > 0 && !isScreening && (
               <div className="fixed bottom-0 left-0 right-0 bg-background/90 backdrop-blur-sm border-t border-border p-4 z-10">
                 <div className="max-w-5xl mx-auto">
-                  <button
+                  <Button
                     onClick={() => setShowScreeningModal(true)}
-                    className="w-full py-3.5 bg-primary text-primary-foreground rounded-xl font-bold text-base flex items-center justify-center gap-2 hover:opacity-90 transition-opacity btn-press"
+                    fullWidth
+                    size="lg"
                   >
                     <Sparkles className="h-5 w-5" /> {t('job.run_screening')}
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
           </div>
         )}
 
+        {/* Results Tab */}
         {tab === 'results' && (
           <div>
             {job.results.length === 0 ? (
@@ -504,9 +556,9 @@ export default function JobDetail() {
             ) : (
               <>
                 <div className="flex justify-end mb-6">
-                  <button onClick={exportCsv} className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg text-sm font-medium text-foreground hover:bg-accent transition-colors btn-press">
+                  <Button variant="outline" onClick={exportCsv}>
                     <Download className="h-4 w-4" /> {t('job.export_csv')}
-                  </button>
+                  </Button>
                 </div>
 
                 {/* Pool Health Summary */}
@@ -534,57 +586,65 @@ export default function JobDetail() {
                 {/* Dashboard Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                   {/* Skill Radar Chart */}
-                  <div className="bg-card border border-border rounded-xl p-6 shadow-card">
-                    <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-                       <Sparkles className="h-4 w-4 text-primary" /> Skills Match Portfolio (Top 3)
-                    </h3>
-                    <div className="h-[300px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RadarChart cx="50%" cy="50%" outerRadius="80%" data={
-                          // Combine skills from top 3 candidates for comparison
-                          (job.results[0]?.strengths || []).slice(0, 6).map(skill => ({
-                            subject: skill,
-                            A: 90 + Math.random() * 10,
-                            B: 70 + Math.random() * 20,
-                            C: 50 + Math.random() * 30,
-                            fullMark: 100,
-                          }))
-                        }>
-                          <PolarGrid stroke="hsl(var(--muted-foreground) / 0.2)" />
-                          <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
-                          <Radar name={job.results[0]?.candidateName || 'N/A'} dataKey="A" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.5} />
-                          <Radar name={job.results[1]?.candidateName || 'N/A'} dataKey="B" stroke="hsl(var(--warning))" fill="hsl(var(--warning))" fillOpacity={0.3} />
-                          <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
-                          <Legend />
-                        </RadarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
+                  <Card>
+                    <CardHeader>
+                      <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-primary" /> Skills Match Portfolio (Top 3)
+                      </h3>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <RadarChart cx="50%" cy="50%" outerRadius="80%" data={
+                            (job.results[0]?.strengths || []).slice(0, 6).map(skill => ({
+                              subject: skill,
+                              A: 90 + Math.random() * 10,
+                              B: 70 + Math.random() * 20,
+                              C: 50 + Math.random() * 30,
+                              fullMark: 100,
+                            }))
+                          }>
+                            <PolarGrid stroke="hsl(var(--muted-foreground) / 0.2)" />
+                            <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+                            <Radar name={job.results[0]?.candidateName || 'N/A'} dataKey="A" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.5} />
+                            <Radar name={job.results[1]?.candidateName || 'N/A'} dataKey="B" stroke="hsl(var(--warning))" fill="hsl(var(--warning))" fillOpacity={0.3} />
+                            <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
+                            <Legend />
+                          </RadarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
 
                   {/* Score Distribution */}
-                  <div className="bg-card border border-border rounded-xl p-6 shadow-card">
-                    <h3 className="text-sm font-semibold text-foreground mb-4 font-bold flex items-center gap-2">
-                      <BarChart className="h-4 w-4 text-primary" /> Pool Distribution
-                    </h3>
-                    <div className="h-[300px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={[
-                          { range: '90-100', count: job.results.filter(r => r.score >= 90).length },
-                          { range: '80-89', count: job.results.filter(r => r.score >= 80 && r.score < 90).length },
-                          { range: '70-79', count: job.results.filter(r => r.score >= 70 && r.score < 80).length },
-                          { range: '60-69', count: job.results.filter(r => r.score >= 60 && r.score < 70).length },
-                          { range: '<60', count: job.results.filter(r => r.score < 60).length },
-                        ]}>
-                          <XAxis dataKey="range" tick={{ fontSize: 10 }} />
-                          <YAxis tick={{ fontSize: 10 }} />
-                          <Tooltip cursor={{ fill: 'hsl(var(--accent) / 0.5)' }} contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
-                          <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
+                  <Card>
+                    <CardHeader>
+                      <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                        <BarChart className="h-4 w-4 text-primary" /> Pool Distribution
+                      </h3>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={[
+                            { range: '90-100', count: job.results.filter(r => r.score >= 90).length },
+                            { range: '80-89', count: job.results.filter(r => r.score >= 80 && r.score < 90).length },
+                            { range: '70-79', count: job.results.filter(r => r.score >= 70 && r.score < 80).length },
+                            { range: '60-69', count: job.results.filter(r => r.score >= 60 && r.score < 70).length },
+                            { range: '<60', count: job.results.filter(r => r.score < 60).length },
+                          ]}>
+                            <XAxis dataKey="range" tick={{ fontSize: 10 }} />
+                            <YAxis tick={{ fontSize: 10 }} />
+                            <Tooltip cursor={{ fill: 'hsl(var(--accent) / 0.5)' }} contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
+                            <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
 
+                {/* Results List */}
                 <div className="space-y-4">
                   {job.results.map((r, i) => (
                     <motion.div
@@ -654,7 +714,11 @@ export default function JobDetail() {
                           {!r.shortlisted && (
                             <div>
                               <button
-                                onClick={() => setExpandedWhyNot(prev => ({ ...prev, [r.candidateId]: !prev[r.candidateId] }))}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setExpandedWhyNot(prev => ({ ...prev, [r.candidateId]: !prev[r.candidateId] }));
+                                }}
+                                type="button"
                                 className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
                               >
                                 <ChevronDown className={`h-3 w-3 transition-transform ${expandedWhyNot[r.candidateId] ? 'rotate-180' : ''}`} />
@@ -685,6 +749,7 @@ export default function JobDetail() {
           </div>
         )}
 
+        {/* Screening Modal */}
         <AnimatePresence>
           {showScreeningModal && (
             <motion.div
@@ -698,7 +763,7 @@ export default function JobDetail() {
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
-                onClick={e => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
                 className="bg-card border border-border rounded-2xl p-8 max-w-md w-full shadow-elevated"
               >
                 <h2 className="text-xl font-bold text-foreground mb-2">{t('job.screening_title')}</h2>
@@ -711,8 +776,9 @@ export default function JobDetail() {
                   {[10, 20].map(n => (
                     <button
                       key={n}
+                      type="button"
                       onClick={() => setTopN(n)}
-                      className={`flex-1 py-3 rounded-xl text-sm font-semibold border-2 transition-colors btn-press ${
+                      className={`flex-1 py-3 rounded-xl text-sm font-semibold border-2 transition-colors ${
                         topN === n ? 'border-primary bg-primary/5 text-primary' : 'border-border text-muted-foreground hover:border-primary/30'
                       }`}
                     >
@@ -720,19 +786,17 @@ export default function JobDetail() {
                     </button>
                   ))}
                 </div>
-                <button
-                  onClick={handleRunScreening}
-                  className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-opacity btn-press"
-                >
+                <Button onClick={handleRunScreening} fullWidth>
                   {t('job.start_screening')}
-                </button>
+                </Button>
               </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
 
+        {/* Candidate Portfolio Modal */}
         {selectedCandidate && (
-          <CandidatePortfolioModal 
+          <CandidatePortfolioModal
             candidate={selectedCandidate}
             result={job.results.find(r => r.candidateId === selectedCandidate.id)}
             onClose={() => setSelectedCandidate(null)}

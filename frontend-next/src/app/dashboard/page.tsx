@@ -8,11 +8,12 @@ import { Briefcase, Users, Zap, MapPin, Clock, User } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@/store';
 import { fetchJobs } from '@/store/slices/jobsSlice';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 
 function AnimatedNumber({ value }: { value: number }) {
   const [display, setDisplay] = useState(0);
   useEffect(() => {
-    // If value is 0, just set display to 0 once and return.
     if (value === 0) {
       setDisplay(0);
       return;
@@ -33,7 +34,7 @@ export default function Dashboard() {
   const { t } = useTranslation();
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
-  
+
   const { user, isAuthenticated, loading: authLoading } = useSelector((state: RootState) => state.auth);
   const { jobs, loading: jobsLoading } = useSelector((state: RootState) => state.jobs);
 
@@ -50,7 +51,7 @@ export default function Dashboard() {
   }, [dispatch, isAuthenticated]);
 
   const [mounted, setMounted] = useState(false);
-  
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -96,12 +97,9 @@ export default function Dashboard() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl sm:text-4xl font-bold text-foreground">{t('dashboard.title')}</h1>
-          <button
-            onClick={() => router.push('/jobs/create')}
-            className="px-5 py-2.5 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:opacity-90 transition-opacity btn-press"
-          >
+          <Button onClick={() => router.push('/jobs/create')}>
             {t('dashboard.new_job')}
-          </button>
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
@@ -129,12 +127,9 @@ export default function Dashboard() {
             <Briefcase className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
             <h2 className="text-xl font-bold text-foreground mb-2">{t('dashboard.empty_title')}</h2>
             <p className="text-muted-foreground mb-6">{t('dashboard.empty_desc')}</p>
-            <button
-              onClick={() => router.push('/jobs/create')}
-              className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold text-sm btn-press"
-            >
+            <Button onClick={() => router.push('/jobs/create')}>
               {t('dashboard.new_job')}
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">

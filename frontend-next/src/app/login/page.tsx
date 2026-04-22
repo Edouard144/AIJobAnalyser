@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -9,6 +9,10 @@ import { useDispatch } from 'react-redux';
 import { login as loginAction } from '@/store/slices/authSlice';
 import type { AppDispatch } from '@/store';
 import toast from 'react-hot-toast';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Label';
+import { Card, CardContent } from '@/components/ui/Card';
 
 export default function Login() {
   const { t } = useTranslation();
@@ -27,7 +31,7 @@ export default function Login() {
     return e;
   };
 
-  const handleSubmit = async (ev: React.FormEvent) => {
+  const handleSubmit = async (ev: FormEvent) => {
     ev.preventDefault();
     const e = validate();
     setErrors(e);
@@ -54,45 +58,57 @@ export default function Login() {
         </div>
       </div>
       <div className="flex-1 flex items-center justify-center p-8 pt-24">
-        <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-6">
-          <h1 className="text-3xl font-bold text-foreground">{t('auth.login')}</h1>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">{t('auth.email')}</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground text-sm focus:ring-2 focus:ring-ring focus:border-transparent outline-none transition-all"
-            />
-            {errors.email && <p className="text-destructive text-xs mt-1">{errors.email}</p>}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">{t('auth.password')}</label>
-            <div className="relative">
-              <input
-                type={showPw ? 'text' : 'password'}
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground text-sm focus:ring-2 focus:ring-ring focus:border-transparent outline-none transition-all pr-10"
-              />
-              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-            {errors.password && <p className="text-destructive text-xs mt-1">{errors.password}</p>}
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:opacity-90 transition-opacity btn-press disabled:opacity-50"
-          >
-            {loading ? t('common.loading') : t('auth.sign_in')}
-          </button>
-          <p className="text-sm text-muted-foreground text-center">
-            {t('auth.no_account')}{' '}
-            <Link href="/register" className="text-primary font-medium hover:underline">{t('auth.sign_up')}</Link>
-          </p>
-        </form>
+        <Card className="w-full max-w-sm">
+          <CardContent className="pt-6 space-y-6">
+            <h1 className="text-3xl font-bold text-foreground">{t('auth.login')}</h1>
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <Label htmlFor="email">{t('auth.email')}</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  error={errors.email}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="password">{t('auth.password')}</Label>
+                <Input
+                  id="password"
+                  type={showPw ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  error={errors.password}
+                  rightIcon={
+                    <button
+                      type="button"
+                      onClick={() => setShowPw(!showPw)}
+                      className="hover:text-foreground transition-colors"
+                      aria-label={showPw ? 'Hide password' : 'Show password'}
+                    >
+                      {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  }
+                />
+              </div>
+
+              <Button type="submit" loading={loading} fullWidth>
+                {loading ? t('common.loading') : t('auth.sign_in')}
+              </Button>
+            </form>
+
+            <p className="text-sm text-muted-foreground text-center">
+              {t('auth.no_account')}{' '}
+              <Link href="/register" className="text-primary font-medium hover:underline">
+                {t('auth.sign_up')}
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

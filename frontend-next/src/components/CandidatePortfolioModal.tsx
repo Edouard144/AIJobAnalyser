@@ -2,12 +2,16 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, Mail, MapPin, Briefcase, GraduationCap, 
-  ExternalLink, Calendar, CheckCircle, Target, 
-  Sparkles, Globe, User, Code, HelpCircle, Loader2 
+import {
+  X, Mail, MapPin, Briefcase, GraduationCap,
+  ExternalLink, Calendar, CheckCircle, Target,
+  Sparkles, Globe, User, Code, HelpCircle, Loader2
 } from 'lucide-react';
 import { screeningService } from '@/services/screening.service';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { Separator } from '@/components/ui/Separator';
+import { Avatar } from '@/components/ui/Avatar';
 
 interface CandidatePortfolioModalProps {
   candidate: any;
@@ -43,7 +47,7 @@ export default function CandidatePortfolioModal({ candidate, onClose, result }: 
           onClick={onClose}
           className="absolute inset-0 bg-background/80 backdrop-blur-md"
         />
-        
+
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -53,28 +57,33 @@ export default function CandidatePortfolioModal({ candidate, onClose, result }: 
           {/* Header */}
           <div className="p-6 border-b border-border flex items-center justify-between bg-accent/30">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary text-2xl font-bold">
-                {candidate.firstName?.[0]}{candidate.lastName?.[0]}
-              </div>
+              <Avatar
+                fallback={`${candidate.firstName?.[0] || ''}${candidate.lastName?.[0] || ''}`}
+                size="xl"
+              />
               <div>
-                <h2 className="text-2xl font-bold text-foreground">{candidate.firstName} {candidate.lastName}</h2>
+                <h2 className="text-2xl font-bold text-foreground">
+                  {candidate.firstName} {candidate.lastName}
+                </h2>
                 <p className="text-muted-foreground flex items-center gap-2 text-sm">
                   <Briefcase className="h-4 w-4" /> {candidate.headline || 'Talent'}
                 </p>
               </div>
             </div>
-            <button 
+            <button
+              type="button"
               onClick={onClose}
               className="p-2 hover:bg-accent rounded-full transition-colors"
+              aria-label="Close modal"
             >
               <X className="h-6 w-6 text-muted-foreground" />
             </button>
           </div>
 
           {/* Body */}
-          <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto p-6 md:p-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              
+
               {/* Left Column: Sidebar Info */}
               <div className="space-y-8">
                 {/* Contact & Status */}
@@ -90,9 +99,15 @@ export default function CandidatePortfolioModal({ candidate, onClose, result }: 
                       <span>{candidate.location || 'Remote'}</span>
                     </div>
                     {candidate.socialLinks?.linkedin && (
-                      <a href={candidate.socialLinks.linkedin} target="_blank" className="flex items-center gap-3 text-sm text-primary hover:underline">
+                      <a
+                        href={candidate.socialLinks.linkedin}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 text-sm text-primary hover:underline"
+                      >
                         <Globe className="h-4 w-4" />
                         <span>LinkedIn Profile</span>
+                        <ExternalLink className="h-3 w-3" />
                       </a>
                     )}
                   </div>
@@ -111,7 +126,7 @@ export default function CandidatePortfolioModal({ candidate, onClose, result }: 
                       <p className="text-xs font-semibold text-foreground">Strengths</p>
                       <div className="flex flex-wrap gap-1">
                         {result.strengths?.map((s: string) => (
-                          <span key={s} className="px-2 py-0.5 bg-primary/10 text-primary rounded-md text-[10px]">{s}</span>
+                          <Badge key={s} variant="primary">{s}</Badge>
                         ))}
                       </div>
                     </div>
@@ -120,7 +135,7 @@ export default function CandidatePortfolioModal({ candidate, onClose, result }: 
                         <p className="text-xs font-semibold text-foreground">Development Gaps</p>
                         <div className="flex flex-wrap gap-1">
                           {result.gaps?.map((g: string) => (
-                            <span key={g} className="px-2 py-0.5 bg-destructive/10 text-destructive rounded-md text-[10px]">{g}</span>
+                            <Badge key={g} variant="destructive">{g}</Badge>
                           ))}
                         </div>
                       </div>
@@ -133,16 +148,17 @@ export default function CandidatePortfolioModal({ candidate, onClose, result }: 
                   <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                     <HelpCircle className="h-3 w-3" /> Interview Kit
                   </h3>
-                  
+
                   {questions.length === 0 ? (
-                    <button 
+                    <Button
                       onClick={handleGenerateQuestions}
                       disabled={loadingQuestions}
-                      className="w-full py-2 bg-primary text-primary-foreground rounded-lg text-[10px] font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50"
+                      fullWidth
+                      size="sm"
                     >
                       {loadingQuestions ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
                       {loadingQuestions ? 'Analyzing Gaps...' : 'Generate Smart Questions'}
-                    </button>
+                    </Button>
                   ) : (
                     <div className="space-y-3">
                       {questions.map((q, i) => (
@@ -150,12 +166,14 @@ export default function CandidatePortfolioModal({ candidate, onClose, result }: 
                           {q}
                         </div>
                       ))}
-                      <button 
+                      <Button
                         onClick={() => setQuestions([])}
-                        className="w-full text-[9px] text-muted-foreground hover:text-primary transition-colors text-center"
+                        variant="ghost"
+                        size="sm"
+                        fullWidth
                       >
                         Regenerate
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </section>
@@ -165,7 +183,7 @@ export default function CandidatePortfolioModal({ candidate, onClose, result }: 
                   <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Skills Portfolio</h3>
                   <div className="flex flex-wrap gap-1.5">
                     {candidate.skills?.map((s: any) => (
-                      <div 
+                      <div
                         key={typeof s === 'string' ? s : s.name}
                         className="px-3 py-1 bg-accent border border-border rounded-lg text-xs flex flex-col"
                       >
@@ -179,7 +197,7 @@ export default function CandidatePortfolioModal({ candidate, onClose, result }: 
 
               {/* Right Column: Main Content */}
               <div className="md:col-span-2 space-y-12">
-                
+
                 {/* About / Bio */}
                 <section>
                   <h3 className="text-lg font-bold text-foreground mb-4">Professional Summary</h3>
@@ -187,6 +205,8 @@ export default function CandidatePortfolioModal({ candidate, onClose, result }: 
                     {candidate.bio || `A passionate ${candidate.headline || 'professional'} focused on delivering high-quality results and continuous improvement in the field of technology and innovation.`}
                   </p>
                 </section>
+
+                <Separator />
 
                 {/* Experience Timeline */}
                 <section className="space-y-6">
@@ -196,33 +216,36 @@ export default function CandidatePortfolioModal({ candidate, onClose, result }: 
                   <div className="space-y-8 border-l-2 border-border ml-2 pl-6">
                     {candidate.experience?.length > 0 ? candidate.experience.map((exp: any, i: number) => (
                       exp ? (
-                      <div key={i} className="relative">
-                        <div className="absolute -left-[31px] top-1.5 w-4 h-4 rounded-full bg-background border-2 border-primary" />
-                        <div className="space-y-2">
-                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-1">
-                            <h4 className="font-bold text-foreground">{exp.role}</h4>
-                            <span className="text-xs font-medium text-muted-foreground bg-accent px-2 py-1 rounded-md flex items-center gap-1">
-                              <Calendar className="h-3 w-3" /> {exp.startDate} - {exp.endDate}
-                            </span>
-                          </div>
-                          <p className="text-sm font-semibold text-primary">{exp.company}</p>
-                          <p className="text-sm text-muted-foreground">{exp.description}</p>
-                          {exp.technologies?.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 pt-2">
-                              {exp.technologies.map((tech: string) => (
-                                <span key={tech} className="text-[10px] text-muted-foreground px-2 py-0.5 border border-border rounded-md italic">
-                                  #{tech}
-                                </span>
-                              ))}
+                        <div key={i} className="relative">
+                          <div className="absolute -left-[31px] top-1.5 w-4 h-4 rounded-full bg-background border-2 border-primary" />
+                          <div className="space-y-2">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-1">
+                              <h4 className="font-bold text-foreground">{exp.role}</h4>
+                              <span className="text-xs font-medium text-muted-foreground bg-accent px-2 py-1 rounded-md flex items-center gap-1">
+                                <Calendar className="h-3 w-3" /> {exp.startDate} - {exp.endDate}
+                              </span>
                             </div>
-                          )}
+                            <p className="text-sm font-semibold text-primary">{exp.company}</p>
+                            <p className="text-sm text-muted-foreground">{exp.description}</p>
+                            {exp.technologies?.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 pt-2">
+                                {exp.technologies.map((tech: string) => (
+                                  <span key={tech} className="text-[10px] text-muted-foreground px-2 py-0.5 border border-border rounded-md italic">
+                                    #{tech}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ) : null)) : (
+                      ) : null)
+                    ) : (
                       <p className="text-sm text-muted-foreground italic">No detailed experience provided.</p>
                     )}
                   </div>
                 </section>
+
+                <Separator />
 
                 {/* Projects */}
                 {candidate.projects?.length > 0 && (
@@ -245,6 +268,8 @@ export default function CandidatePortfolioModal({ candidate, onClose, result }: 
                     </div>
                   </section>
                 )}
+
+                <Separator />
 
                 {/* Education */}
                 <section className="space-y-6">
@@ -270,16 +295,15 @@ export default function CandidatePortfolioModal({ candidate, onClose, result }: 
               </div>
             </div>
           </div>
-          
+
           {/* Footer Action */}
           <div className="p-6 border-t border-border bg-accent/10 flex justify-between items-center">
-            <p className="text-xs text-muted-foreground italic">This profile was synchronized with Umurava Official Talent Schema.</p>
-            <button 
-              onClick={onClose}
-              className="px-6 py-2 bg-foreground text-background rounded-lg font-bold text-sm hover:opacity-90 transition-opacity"
-            >
+            <p className="text-xs text-muted-foreground italic">
+              This profile was synchronized with Umurava Official Talent Schema.
+            </p>
+            <Button onClick={onClose}>
               Close Profile
-            </button>
+            </Button>
           </div>
         </motion.div>
       </div>

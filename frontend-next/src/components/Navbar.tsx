@@ -9,6 +9,8 @@ import { Crosshair, Sun, Moon, ChevronDown, LogOut } from 'lucide-react';
 import { logout as logoutAction } from '@/store/slices/authSlice';
 import type { RootState, AppDispatch } from '@/store';
 import { useTheme } from '@/contexts/ThemeContext';
+import { Button } from '@/components/ui/Button';
+import { Avatar } from '@/components/ui/Avatar';
 
 const languages = [
   { code: 'en', flag: '🇬🇧', label: 'English' },
@@ -102,13 +104,13 @@ export default function Navbar() {
           <div ref={langRef} className="relative">
             <button
               onClick={() => setLangOpen(!langOpen)}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-md text-sm hover:bg-accent transition-colors btn-press"
+              className="flex items-center gap-1 px-2 py-1.5 rounded-md text-sm hover:bg-accent transition-colors active:scale-95"
             >
               <span>{mounted ? currentLang.flag : '🌐'}</span>
               <ChevronDown className="h-3 w-3 text-muted-foreground" />
             </button>
             {langOpen && (
-              <div className="absolute right-0 top-full mt-2 bg-card border border-border rounded-lg shadow-elevated py-1 min-w-[160px]">
+              <div className="absolute right-0 top-full mt-2 bg-card border border-border rounded-lg shadow-elevated py-1 min-w-[160px] z-dropdown">
                 {languages.map(lang => (
                   <button
                     key={lang.code}
@@ -126,7 +128,8 @@ export default function Navbar() {
 
           <button
             onClick={toggle}
-            className="p-2 rounded-md hover:bg-accent transition-colors btn-press min-w-[40px] min-h-[40px] flex items-center justify-center"
+            type="button"
+            className="p-2 rounded-md hover:bg-accent transition-colors active:scale-95 min-w-[40px] min-h-[40px] flex items-center justify-center"
           >
             {mounted && (
               theme === 'light' ? <Moon className="h-4 w-4 text-muted-foreground" /> : <Sun className="h-4 w-4 text-muted-foreground" />
@@ -137,18 +140,20 @@ export default function Navbar() {
             <div ref={userRef} className="relative">
               <button
                 onClick={() => setUserOpen(!userOpen)}
-                className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold btn-press"
+                type="button"
+                className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold active:scale-95"
               >
                 {(user.fullName || user.email || 'U').charAt(0).toUpperCase()}
               </button>
               {userOpen && (
-                <div className="absolute right-0 top-full mt-2 bg-card border border-border rounded-lg shadow-elevated py-2 min-w-[200px]">
+                <div className="absolute right-0 top-full mt-2 bg-card border border-border rounded-lg shadow-elevated py-2 min-w-[200px] z-dropdown">
                   <div className="px-4 py-2 border-b border-border">
                     <p className="text-sm font-medium text-foreground">{user.fullName || user.email}</p>
                     <p className="text-xs text-muted-foreground">{user.email}</p>
                   </div>
                   <button
                     onClick={handleLogout}
+                    type="button"
                     className="w-full text-left px-4 py-2 text-sm flex items-center gap-2 text-destructive hover:bg-accent transition-colors"
                   >
                     <LogOut className="h-4 w-4" /> {t('nav.logout')}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -9,6 +9,10 @@ import { useDispatch } from 'react-redux';
 import { register as registerAction } from '@/store/slices/authSlice';
 import type { AppDispatch } from '@/store';
 import toast from 'react-hot-toast';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Label';
+import { Card, CardContent } from '@/components/ui/Card';
 
 export default function Register() {
   const { t } = useTranslation();
@@ -30,7 +34,7 @@ export default function Register() {
     return e;
   };
 
-  const handleSubmit = async (ev: React.FormEvent) => {
+  const handleSubmit = async (ev: FormEvent) => {
     ev.preventDefault();
     const e = validate();
     setErrors(e);
@@ -57,62 +61,69 @@ export default function Register() {
         </div>
       </div>
       <div className="flex-1 flex items-center justify-center p-8 pt-24">
-        <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-6">
-          <h1 className="text-3xl font-bold text-foreground">{t('auth.register')}</h1>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">First Name</label>
-              <input
-                type="text"
-                value={firstName}
-                onChange={e => setFirstName(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground text-sm focus:ring-2 focus:ring-ring focus:border-transparent outline-none transition-all"
-              />
-              {errors.firstName && <p className="text-destructive text-xs mt-1">{errors.firstName}</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">Last Name</label>
-              <input
-                type="text"
-                value={lastName}
-                onChange={e => setLastName(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground text-sm focus:ring-2 focus:ring-ring focus:border-transparent outline-all transition-all"
-              />
-              {errors.lastName && <p className="text-destructive text-xs mt-1">{errors.lastName}</p>}
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">{t('auth.email')}</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground text-sm focus:ring-2 focus:ring-ring focus:border-transparent outline-none transition-all"
-            />
-            {errors.email && <p className="text-destructive text-xs mt-1">{errors.email}</p>}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">{t('auth.password')}</label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground text-sm focus:ring-2 focus:ring-ring focus:border-transparent outline-none transition-all"
-            />
-            {errors.password && <p className="text-destructive text-xs mt-1">{errors.password}</p>}
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:opacity-90 transition-opacity btn-press disabled:opacity-50"
-          >
-            {loading ? t('common.loading') : t('auth.sign_up')}
-          </button>
-          <p className="text-sm text-muted-foreground text-center">
-            {t('auth.have_account')}{' '}
-            <Link href="/login" className="text-primary font-medium hover:underline">{t('auth.sign_in')}</Link>
-          </p>
-        </form>
+        <Card className="w-full max-w-sm">
+          <CardContent className="pt-6 space-y-6">
+            <h1 className="text-3xl font-bold text-foreground">{t('auth.register')}</h1>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input
+                    id="firstName"
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    error={errors.firstName}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    error={errors.lastName}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="email">{t('auth.email')}</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  error={errors.email}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="password">{t('auth.password')}</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  error={errors.password}
+                />
+              </div>
+
+              <Button type="submit" loading={loading} fullWidth>
+                {loading ? t('common.loading') : t('auth.sign_up')}
+              </Button>
+            </form>
+
+            <p className="text-sm text-muted-foreground text-center">
+              {t('auth.have_account')}{' '}
+              <Link href="/login" className="text-primary font-medium hover:underline">
+                {t('auth.sign_in')}
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

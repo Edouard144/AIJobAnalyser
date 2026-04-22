@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import "./index.css";
+import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
