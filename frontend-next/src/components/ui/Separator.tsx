@@ -1,4 +1,4 @@
-import { type HTMLAttributes } from 'react';
+import { type HTMLAttributes, forwardRef } from 'react';
 import { cn } from '@/lib/utils';
 
 export interface SeparatorProps extends HTMLAttributes<HTMLHRElement> {
