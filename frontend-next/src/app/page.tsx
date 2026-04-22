@@ -72,7 +72,7 @@ export default function Landing() {
             {/* Headline - Outcome focused */}
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight tracking-tight">
               Get your top 10 candidates in{' '}
-              <span className="text-primary">30 seconds</span>,{' '}
+              <span className="text-primary drop-shadow-[0_0_12px_rgba(34,197,94,0.5)]">30 seconds</span>,{' '}
               not 3 hours
             </h1>
 
@@ -82,15 +82,18 @@ export default function Landing() {
               No black box — just data-driven decisions.
             </p>
 
-            {/* Primary CTA */}
+            {/* Primary CTA with shimmer effect */}
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button 
                 onClick={() => router.push('/register')} 
                 size="lg"
-                className="group"
+                className="group relative overflow-hidden"
               >
-                Analyze My First CSV Free
-                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                <span className="relative z-10 flex items-center">
+                  Analyze My First CSV Free
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </span>
+                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
               </Button>
               <Button
                 onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
@@ -142,7 +145,14 @@ export default function Landing() {
                 </div>
               </div>
               {/* After - Ranked */}
-              <div className="p-6 bg-primary/5">
+              <div className="p-6 bg-primary/5 relative overflow-hidden">
+                {/* AI Scanning line effect */}
+                <motion.div
+                  initial={{ y: -100, opacity: 0 }}
+                  animate={{ y: 200, opacity: [0, 1, 1, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent"
+                />
                 <div className="text-xs font-semibold text-primary uppercase tracking-wide mb-4">Scout Top 10</div>
                 <div className="space-y-2">
                   {[
