@@ -135,6 +135,20 @@ app.use("/api/auth", authRoutes);
 app.use("/api/jobs", jobRoutes); 
 app.use("/api/jobs/:jobId/candidates", candidateRoutes);
 app.use("/api/jobs/:jobId/screening", screeningRoutes);
+
+// New feature routes - imported statically
+import activityRoutes from "./modules/activity/activity.routes";
+import notificationsRoutes from "./modules/notifications/notifications.routes";
+import aiRoutes from "./modules/ai/ai.chat.routes";
+import teamRoutes from "./modules/team/team.routes";
+import billingRoutes from "./modules/billing/billing.routes";
+
+app.use("/api/activity", activityRoutes);
+app.use("/api/notifications", notificationsRoutes);
+app.use("/api/ai", aiRoutes);
+app.use("/api/team", teamRoutes);
+app.use("/api/billing", billingRoutes);
+
 app.use(errorMiddleware);
 
 app.listen(env.PORT, () => {
