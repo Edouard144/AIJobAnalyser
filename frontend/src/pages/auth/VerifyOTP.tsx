@@ -69,8 +69,16 @@ export default function VerifyOTP() {
     try {
       const res: any = await authApi.verifyOTP(email, otp);
       localStorage.setItem('accessToken', res.accessToken);
-      localStorage.setItem('refreshToken', res.refreshToken);
-      localStorage.setItem('user', JSON.stringify(res.user));
+      localStorage.setItem('refreshToken', res.refreshToken || '');
+      
+      let user = res.user;
+      if (!user) {
+        user = await authApi.getMe() as any;
+      }
+      if (user) {
+        localStorage.setItem('user', JSON.stringify(user));
+      }
+      
       sessionStorage.removeItem('pendingVerificationEmail');
       toast.success('Email verified!');
       navigate('/dashboard');

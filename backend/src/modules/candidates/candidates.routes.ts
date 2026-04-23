@@ -357,6 +357,8 @@ router.post("/upload-pdf", upload.single("file"), candidatesController.uploadPDF
 // Standard CRUD
 router.get( "/",           validate(paginationSchema), candidatesController.getByJob);
 router.get( "/:id",                                  candidatesController.getOne);
+router.patch("/:id/status",                         candidatesController.updateStatus);
+router.patch("/:id",                                candidatesController.update);
 router.delete("/:id",                                candidatesController.remove);
 router.delete("/",                                   candidatesController.removeAll);
 

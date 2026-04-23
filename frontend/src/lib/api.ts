@@ -1,7 +1,15 @@
 // AIRECRUIT API Client
 const API_BASE = 'http://localhost:5000/api';
 
-const getToken = () => localStorage.getItem('accessToken');
+export const getToken = () => localStorage.getItem('accessToken');
+
+export const clearAuth = () => {
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
+  localStorage.removeItem('user');
+};
+
+export const isAuthenticated = () => !!localStorage.getItem('accessToken');
 
 const headers = () => ({
   'Content-Type': 'application/json',
@@ -18,7 +26,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   
   if (!res.ok) {
     if (res.status === 401) {
-      localStorage.removeItem('accessToken');
+      clearAuth();
       window.location.href = '/login';
     }
     const err = await res.json().catch(() => ({ message: 'Request failed' }));
@@ -47,6 +55,11 @@ export const authApi = {
   
   updateProfile: (data: { language?: string; theme?: string; onboardingCompleted?: boolean }) =>
     request('/auth/profile', { method: 'PATCH', body: JSON.stringify(data) }),
+  
+  logout: () => {
+    clearAuth();
+    window.location.href = '/login';
+  },
 };
 
 // Jobs
@@ -227,7 +240,7 @@ export const insightsApi = {
       
       days.push({
         day: date.toLocaleDateString('en', { weekday: 'short' }),
-        screenings: screenings > 0 ? Math.min(screenings, 20) : Math.floor(Math.random() * 5),
+        screenings: screenings > 0 ? Math.min(screenings, 20) : 0,
       });
     }
     return days;

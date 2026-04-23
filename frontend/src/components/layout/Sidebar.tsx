@@ -3,10 +3,12 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Briefcase, Users, ScanSearch, BarChart3, Sparkles, Activity,
   UserCircle, UsersRound, CreditCard, HelpCircle, ChevronLeft, Menu,
+  LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { clearAuth } from '@/lib/api';
 
 export const Sidebar = ({ collapsed, setCollapsed }: { collapsed: boolean; setCollapsed: (b: boolean) => void }) => {
   const { t } = useTranslation();
@@ -124,7 +126,7 @@ export const Sidebar = ({ collapsed, setCollapsed }: { collapsed: boolean; setCo
         ))}
       </nav>
 
-<div className="absolute bottom-0 left-0 right-0 p-3 border-t border-sidebar-border bg-sidebar">
+<div className="absolute bottom-0 left-0 right-0 p-3 border-t border-sidebar-border bg-sidebar space-y-1">
         <div className={cn('flex items-center gap-3 rounded-lg p-2', !collapsed && 'hover:bg-sidebar-accent cursor-pointer')}>
           <div className="h-9 w-9 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-semibold text-sm shrink-0">
             {getInitials()}
@@ -136,6 +138,16 @@ export const Sidebar = ({ collapsed, setCollapsed }: { collapsed: boolean; setCo
             </div>
           )}
         </div>
+        <button
+          onClick={() => { clearAuth(); window.location.href = '/login'; }}
+          className={cn(
+            'w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors',
+            !collapsed && 'px-3', collapsed && 'justify-center px-2'
+          )}
+        >
+          <LogOut className="h-[18px] w-[18px] shrink-0" />
+          {!collapsed && <span className="font-medium">Sign out</span>}
+        </button>
       </div>
     </aside>
   );

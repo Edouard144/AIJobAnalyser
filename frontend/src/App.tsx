@@ -5,6 +5,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { isAuthenticated } from "@/lib/api";
+
+const RequireAuth = ({ children }: { children: React.ReactNode }) => {
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+};
 
 import Landing from "./pages/Landing";
 import Login from "./pages/auth/Login";
@@ -39,7 +47,7 @@ const App = () => (
             <Route path="/register" element={<Register />} />
             <Route path="/verify" element={<VerifyOTP />} />
 
-            <Route element={<AppLayout />}>
+<Route element={<RequireAuth><AppLayout /></RequireAuth>}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/jobs" element={<Jobs />} />
               <Route path="/jobs/:id" element={<JobDetail />} />

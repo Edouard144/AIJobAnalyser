@@ -117,10 +117,10 @@ return (
 
       {/* KPI cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPI icon={Briefcase} label={t('dashboard.totalJobs')} value={stats.totalJobs} trend={12} color="bg-primary/10 text-primary" delay={0} />
-        <KPI icon={Users} label={t('dashboard.totalCandidates')} value={stats.totalCandidates} trend={23} color="bg-secondary/10 text-secondary" delay={80} />
-        <KPI icon={ScanSearch} label={t('dashboard.screeningsRun')} value={stats.screeningsRun} trend={47} color="bg-warning/10 text-warning" delay={160} />
-        <KPI icon={TrendingUp} label={t('dashboard.avgMatch')} value={stats.avgMatch} suffix="%" trend={-3} color="bg-success/10 text-success" delay={240} />
+        <KPI icon={Briefcase} label={t('dashboard.totalJobs')} value={stats.totalJobs} trend={Math.floor(Math.random() * 20) - 5} color="bg-primary/10 text-primary" delay={0} />
+        <KPI icon={Users} label={t('dashboard.totalCandidates')} value={stats.totalCandidates} trend={Math.floor(Math.random() * 30) - 10} color="bg-secondary/10 text-secondary" delay={80} />
+        <KPI icon={ScanSearch} label={t('dashboard.screeningsRun')} value={stats.screeningsRun} trend={Math.floor(Math.random() * 50)} color="bg-warning/10 text-warning" delay={160} />
+        <KPI icon={TrendingUp} label={t('dashboard.avgMatch')} value={stats.avgMatch} suffix="%" trend={Math.floor(Math.random() * 10) - 5} color="bg-success/10 text-success" delay={240} />
       </div>
 
       {/* Charts grid */}

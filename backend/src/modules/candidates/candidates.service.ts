@@ -1,9 +1,10 @@
 // candidates service
 import { eq, and } from "drizzle-orm";
-import { parse } from "csv-parse/sync";
+import { parse } from "csv-parser/sync";
 import { db } from "../../config/db";
 import { candidates } from "../../db/schema/candidates";
 import { jobs } from "../../db/schema/jobs";
+import { screeningResults } from "../../db/schema/screening";
 import { CandidateInput } from "./candidates.schema";
 import { geminiService } from "../screening/gemini.service";
 
@@ -141,6 +142,25 @@ export const candidatesService = {
       .returning();
 
     return inserted;
+  },
+
+  // ── Update candidate status ───────────────────────────────────────────────
+  async updateStatus(candidateId: string, status: string) {
+    const [updated] = await db
+      .update(candidates)
+      .set({ status })
+      .where(eq(candidates.id, candidateId))
+      .returning();
+    return updated;
+  },
+
+  async update(candidateId: string, data: any) {
+    const [updated] = await db
+      .update(candidates)
+      .set(data)
+      .where(eq(candidates.id, candidateId))
+      .returning();
+    return updated;
   },
 
   // ── Scenario 2: Parse CSV buffer and insert candidates ────────────────────
@@ -359,11 +379,10 @@ export const candidatesService = {
     return inserted;
   },
 
-  // ── Get all candidates for a job ──────────────────────────────────────────
+  // ── Get all candidates for a job (with screening data merged) ─────────────
   async getByJob(jobId: string, page: number = 1, limit: number = 20) {
     const offset = (page - 1) * limit;
 
-    // Get total count
     const [countResult] = await db
       .select({ count: candidates.id })
       .from(candidates)
@@ -371,13 +390,41 @@ export const candidatesService = {
 
     const total = Number(countResult?.count) || 0;
 
-    // Get paginated data
-    const data = await db
+    const raw = await db
       .select()
       .from(candidates)
       .where(eq(candidates.jobId, jobId))
       .limit(limit)
       .offset(offset);
+
+    const candidateIds = raw.map(c => c.id);
+
+    let screeningMap: Record<string, any> = {};
+    if (candidateIds.length > 0) {
+      const results = await db
+        .select()
+        .from(screeningResults)
+        .where(eq(screeningResults.jobId, jobId));
+      
+      screeningMap = results.reduce((acc, r) => {
+        acc[r.candidateId] = r;
+        return acc;
+      }, {} as Record<string, any>);
+    }
+
+    const data = raw.map(candidate => {
+      const screen = screeningMap[candidate.id];
+      const score = screen?.score != null ? parseFloat(String(screen.score)) : null;
+      return {
+        ...candidate,
+        status: candidate.status || 'new',
+        matchScore: score,
+        rank: screen?.rank ?? null,
+        strengths: screen?.strengths ?? [],
+        gaps: screen?.gaps ?? [],
+        recommendation: screen?.recommendation ?? null,
+      };
+    });
 
     return {
       data,

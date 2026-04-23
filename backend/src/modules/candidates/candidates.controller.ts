@@ -116,7 +116,7 @@ export const candidatesController = {
   },
 
   // ── DELETE /api/jobs/:jobId/candidates ────────────────────────────────────
-  async removeAll(req: Request, res: Response) {
+async removeAll(req: Request, res: Response) {
     try {
       const jobId = req.params.jobId as string;
 
@@ -125,6 +125,40 @@ export const candidatesController = {
 
       await candidatesService.removeAll(jobId);
       sendSuccess(res, null, "All candidates removed");
+    } catch (err: any) {
+      sendError(res, err.message);
+    }
+  },
+
+  async updateStatus(req: Request, res: Response) {
+    try {
+      const { jobId, id } = req.params as { jobId: string; id: string };
+      const { status } = req.body;
+
+      const job = await candidatesService.verifyJobOwnership(jobId, req.user!.userId);
+      if (!job) { sendError(res, "Job not found", 404); return; }
+      if (!status) { sendError(res, "Status is required", 400); return; }
+
+      const updated = await candidatesService.updateStatus(id, status);
+      if (!updated) { sendError(res, "Candidate not found", 404); return; }
+
+      sendSuccess(res, updated, "Candidate status updated");
+    } catch (err: any) {
+      sendError(res, err.message);
+    }
+  },
+
+  async update(req: Request, res: Response) {
+    try {
+      const { jobId, id } = req.params as { jobId: string; id: string };
+
+      const job = await candidatesService.verifyJobOwnership(jobId, req.user!.userId);
+      if (!job) { sendError(res, "Job not found", 404); return; }
+
+      const updated = await candidatesService.update(id, req.body);
+      if (!updated) { sendError(res, "Candidate not found", 404); return; }
+
+      sendSuccess(res, updated, "Candidate updated");
     } catch (err: any) {
       sendError(res, err.message);
     }

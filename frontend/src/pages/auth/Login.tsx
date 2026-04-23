@@ -22,8 +22,16 @@ export default function Login() {
     try {
       const res: any = await authApi.login(email, password);
       localStorage.setItem('accessToken', res.accessToken);
-      localStorage.setItem('refreshToken', res.refreshToken);
-      localStorage.setItem('user', JSON.stringify(res.user));
+      localStorage.setItem('refreshToken', res.refreshToken || '');
+      
+      let user = res.user;
+      if (!user) {
+        user = await authApi.getMe() as any;
+      }
+      if (user) {
+        localStorage.setItem('user', JSON.stringify(user));
+      }
+      
       toast.success('Welcome back!');
       navigate('/dashboard');
     } catch (err: any) {

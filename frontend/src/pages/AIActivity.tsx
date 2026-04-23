@@ -72,7 +72,7 @@ export default function AIActivity() {
                       {e.createdAt ? new Date(e.createdAt).toLocaleDateString() : 'recently'}
                     </span>
                   </div>
-                  <p className="text-sm text-muted-foreground">{e.target || e.details || ''}</p>
+                  <p className="text-sm text-muted-foreground">{e.description || e.target || e.details || ''}</p>
                 </div>
               </div>
             );

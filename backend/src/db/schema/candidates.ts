@@ -19,11 +19,11 @@ export const candidates = pgTable("candidates", {
   // Structured Data (Umurava Spec)
   skills:          jsonb("skills_json"),              // [{name, level, yearsOfExperience}]
   languages:       jsonb("languages_json"),           // [{name, proficiency}]
-  experience:      jsonb("experience_json"),          // [{company, role, description, ...}]
-  education:       jsonb("education_json"),           // [{institution, degree, field, ...}]
-  projects:        jsonb("projects_json"),           // [{name, description, link, ...}]
+  experience:      jsonb("experience_json"),           // [{company, role, description, ...}]
+  education:       jsonb("education_json"),            // [{institution, degree, field, ...}]
+  projects:        jsonb("projects_json"),             // [{name, description, link, ...}]
   certifications:  jsonb("certifications_json"),
-  availability:    jsonb("availability_json"),       // {status, type, startDate}
+  availability:   jsonb("availability_json"),         // {status, type, startDate}
   socialLinks:     jsonb("social_links_json"),
   
   // Internal Tracking
@@ -33,5 +33,9 @@ export const candidates = pgTable("candidates", {
   profileData:     jsonb("profile_data"),             
   resumeUrl:       text("resume_url"),                
   source:          varchar("source", { length: 50 }).default("umurava"), 
+  status:          varchar("status", { length: 50 }).default("new"), // new | reviewed | shortlist | reject
   createdAt:       timestamp("created_at").defaultNow(),
-});
+});
+
+export type Candidate = typeof candidates.$inferSelect;
+export type NewCandidate = typeof candidates.$inferInsert;
