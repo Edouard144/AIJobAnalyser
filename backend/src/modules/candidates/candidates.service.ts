@@ -310,10 +310,14 @@ export const candidatesService = {
 
     // Map CSV columns to our candidate schema
     const values = rows.map((row) => {
-      // Handle separate firstName/lastName or combined fullName
-      const fName = row.firstName || row.first_name || row.FirstName || row.fullName?.split(" ")[0] || "Unknown";
-      const lName = row.lastName || row.last_name || row.LastName || row.fullName?.split(" ").slice(1).join(" ") || "Candidate";
+      // Handle name fields - support multiple formats
+      const nameValue = row.name || row.Name || row.fullName || row.full_name || row.FullName || "";
+      const fName = row.firstName || row.first_name || row.FirstName || row['First Name'] || nameValue.split(" ")[0] || "Unknown";
+      const lName = row.lastName || row.last_name || row.LastName || row['Last Name'] || nameValue.split(" ").slice(1).join(" ") || "Candidate";
       const fullName = `${fName} ${lName}`.trim();
+      
+      // Parse email - also handle 'Email Address' column
+      const email = row.email || row.Email || row['Email Address'] || row.emailAddress || null;
       
       // Parse complex fields using new helpers
       const skillNames = parseArrayField(row.skills);
@@ -326,16 +330,18 @@ export const candidatesService = {
       const socialData = {};
       
       // Parse experience years - ensure it's a number
-      const expYearsRaw = row.experience_years || row.experienceYears || row.years_experience || row.experience_years_exp || "0";
-      const expYears = parseInt(String(expYearsRaw).trim()) || 0;
+      // Try multiple column names and also calculate from experience data if available
+      const expYearsRaw = row.experience_years || row.experienceYears || row.years_experience || row.experience_years_exp || row.yearsOfExperience || "0";
+      const calculatedExpYears = calculateYearsOfExperience(experienceData);
+      const expYears = calculatedExpYears > 0 ? calculatedExpYears : (parseInt(String(expYearsRaw).trim()) || 0);
       
       return {
         jobId,
         firstName:       fName,
         lastName:        lName,
         fullName:        fullName,
-        email:           row.email || row.Email || null,
-        phone:           row.phone || row.Phone || null,
+        email:           email,
+        phone:           row.phone || row.Phone || row.telephone || null,
         headline:        row.headline || row.Headline || row.current_position || "Talent",
         bio:             row.bio || row.Bio || null,
         location:        row.location || row.Location || "Remote",
@@ -350,8 +356,8 @@ export const candidatesService = {
         availability:    availabilityData,
         socialLinks:     Object.keys(socialData).length > 0 ? socialData : undefined,
         
-        // Calculate years of experience from parsed data, fallback to CSV column
-        experienceYears: calculateYearsOfExperience(experienceData) || expYears,
+        // Use calculated years from experience data, fallback to CSV column
+        experienceYears: expYears,
         educationLevel:  row.education_level || row.educationLevel || row.education || null,
         currentPosition: row.current_position || row.position || null,
         source:          "external" as const,

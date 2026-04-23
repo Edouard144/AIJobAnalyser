@@ -160,10 +160,11 @@ export default function Screenings() {
             <Button variant="outline" className="gap-2" onClick={() => {
               const headers = ['Rank', 'Name', 'Email', 'Score', 'Recommendation', 'Strengths', 'Gaps'];
               const rows = results.map((r: any) => {
-                const cand = r.candidate || r;
+                const cand = r.candidate || {};
+                const name = cand.fullName || `${cand.firstName || ''} ${cand.lastName || ''}`.trim() || 'Unknown';
                 return [
                   r.rank || 0,
-                  cand.fullName || `${cand.firstName || ''} ${cand.lastName || ''}`.trim(),
+                  name,
                   cand.email || '',
                   r.score || 0,
                   r.recommendation || '',
