@@ -185,7 +185,7 @@ export default function JobDetail() {
           </div>
         ) : (
           <div className="grid gap-3">
-            {candidates.slice(0, 8).map((c: any, i: number) => {
+            {candidates.map((c: any, i: number) => {
               const name = c.fullName || `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Unknown';
               const score = c.matchScore || 0;
               
