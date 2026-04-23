@@ -2,7 +2,7 @@
 
 import { useState, useEffect, ChangeEvent } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, MapPin, Users, Clock, Sparkles, Loader2, Upload } from 'lucide-react';
+import { ArrowLeft, MapPin, Users, Clock, Sparkles, Loader2, Upload, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { jobsApi, screeningApi, activityApi } from '@/lib/api';
@@ -20,6 +20,9 @@ export default function JobDetail() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [screeningStep, setScreeningStep] = useState<'idle' | 'scanning' | 'results'>('idle');
+  const [screeningProgress, setScreeningProgress] = useState(0);
+  const [screeningResults, setScreeningResults] = useState<any[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -55,6 +58,43 @@ export default function JobDetail() {
     
     loadData();
   }, [id]);
+
+  // Inline screening effect
+  useEffect(() => {
+    if (screeningStep !== 'scanning' || !id) return;
+    
+    const runScreening = async () => {
+      setScreeningProgress(0);
+      const total = 8000;
+      const start = Date.now();
+      
+      const tick = setInterval(async () => {
+        const elapsed = Date.now() - start;
+        const p = Math.min((elapsed / total) * 100, 100);
+        setScreeningProgress(p);
+        
+        if (p >= 100) {
+          clearInterval(tick);
+          setTimeout(async () => {
+            try {
+              const data: any = await screeningApi.run(id, 10);
+              const resultsData = data.results || data || [];
+              setScreeningResults(resultsData);
+              setScreeningStep('results');
+              toast.success(`Screening complete! ${resultsData.length} candidates analyzed`);
+              activityApi.create('screening_completed', id, `${resultsData.length} candidates`).catch(() => {});
+            } catch (err: any) {
+              console.error('[Screening] Error:', err);
+              toast.error(err.message);
+              setScreeningStep('idle');
+            }
+          }, 300);
+        }
+      }, 100);
+    };
+    
+    runScreening();
+  }, [screeningStep, id]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -125,12 +165,68 @@ export default function JobDetail() {
               <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" />Posted {job.createdAt ? new Date(job.createdAt).toLocaleDateString() : 'recently'}</span>
             </div>
           </div>
-          <Link to="/screenings">
-            <Button className="gap-2 bg-gradient-primary glow-primary">
-              <Sparkles className="h-4 w-4" />Run AI Screening
+          <Button 
+              onClick={() => {
+                if (!id || candidates.length === 0) {
+                  toast.error('Add candidates first');
+                  return;
+                }
+                setScreeningStep('scanning');
+              }}
+              disabled={screeningStep === 'scanning'}
+              className="gap-2 bg-gradient-primary glow-primary"
+            >
+              {screeningStep === 'scanning' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {screeningStep === 'scanning' ? 'Screening...' : 'Run AI Screening'}
             </Button>
-          </Link>
+            
+            {screeningStep === 'scanning' && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2"><Zap className="h-4 w-4 text-warning" />Analyzing candidates...</span>
+                  <span className="text-xs text-muted-foreground">{Math.round(screeningProgress)}%</span>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-primary transition-all duration-300" 
+                    style={{ width: `${screeningProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
         </div>
+
+        {screeningStep === 'results' && screeningResults.length > 0 && (
+          <div className="glass rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold flex items-center gap-2"><Sparkles className="h-4 w-4 text-warning" />Screening Results</h3>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setScreeningStep('idle')}
+              >
+                Run again
+              </Button>
+            </div>
+            <div className="grid gap-3">
+              {screeningResults.slice(0, 5).map((r: any, i: number) => {
+                const cand = r.candidate || {};
+                const name = cand.fullName || `${cand.firstName || ''} ${cand.lastName || ''}`.trim() || 'Unknown';
+                return (
+                  <div key={r.id || i} className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/30">
+                    <div className={cn('w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold', i === 0 ? 'bg-warning text-warning-foreground' : 'bg-muted')}>{i + 1}</div>
+                    <GradientAvatar name={name} size={32} />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{cand.currentPosition || cand.email}</p>
+                    </div>
+                    <ScoreRing score={parseFloat(r.score) || 0} size={36} stroke={3} />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {job.description && (
           <p className="text-muted-foreground leading-relaxed mb-6">{job.description}</p>
