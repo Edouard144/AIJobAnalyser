@@ -15,10 +15,11 @@ export const screeningController = {
     }
   },
 
-  // POST /api/jobs/:jobId/screening/run?top=10
+// POST /api/jobs/:jobId/screening/run?top=10
   async run(req: Request, res: Response) {
     try {
       const jobId = req.params.jobId as string;
+      console.log('[Screening] Endpoint hit for job:', jobId);
 
       // Allow recruiter to choose top 10 or top 20 via query param
       const topN = parseInt(req.query.top as string) || 10;
@@ -28,10 +29,13 @@ export const screeningController = {
       }
 
       // This can take a few seconds — Gemini is processing
+      console.log('[Screening] Running screening service for job:', jobId, 'topN:', topN);
       const result = await screeningService.runScreening(jobId, topN);
+      console.log('[Screening] Complete, results:', result.shortlisted, 'candidates');
 
       sendSuccess(res, result, `Screening complete — top ${topN} candidates shortlisted`);
     } catch (err: any) {
+      console.error('[Screening] Error:', err);
       sendError(res, err.message, 500);
     }
   },

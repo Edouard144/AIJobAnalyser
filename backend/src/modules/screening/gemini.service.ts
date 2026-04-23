@@ -71,53 +71,34 @@ export const geminiService = {
     candidates: any[],
     topN: number = 10
   ): Promise<AIResult[]> {
-    const prompt = `
+    const cleanCandidate = (c: any) => {
+  return {
+    id: String(c.id || '').substring(0, 50),
+    name: String(c.fullName || `${c.firstName || ''} ${c.lastName || ''}` || 'Unknown').substring(0, 100),
+    skills: (c.skills || []).map((s: any) => String(typeof s === 'string' ? s : s?.name || '')).filter((s: string) => s && s.length < 50 && !s.match(/\.(png|jpg|jpeg|gif|bmp|webp)$/i)).slice(0, 5),
+    yearsOfExperience: Number(c.experienceYears) || 0,
+    currentPosition: String(c.currentPosition || '').substring(0, 100),
+  };
+};
+
+const prompt = `
 You are an expert AI recruiter assistant, evaluating candidates against a specific job role.
 You must return ONLY a strict JSON array containing the top ${topN} ranked candidates.
 
 JOB TITLE: ${job.title}
-JOB DESCRIPTION: ${job.description || "N/A"}
 REQUIRED SKILLS: ${job.requiredSkills?.join(", ") || "None"}
-REQUIRED YEARS OF EXPERIENCE: ${job.experienceYears || 0} years
-REQUIRED EDUCATION: ${job.educationLevel || "N/A"}
+REQUIRED EXPERIENCE: ${job.experienceYears || 0} years
 
-CANDIDATES PROFILE DATA:
-${JSON.stringify(
-  candidates.map(c => ({
-    id: c.id,
-    name: c.fullName,
-    skills: c.skills?.map((s: any) => typeof s === 'string' ? s : s.name) || [],
-    yearsOfExperience: c.experienceYears || 0,
-    location: c.location,
-    experience: c.experience,
-    education: c.education,
-    projects: c.projects
-  })).slice(0, 50)
-)}
+CANDIDATES:
+${candidates.map((c, i) => {
+  const clean = cleanCandidate(c);
+  return `${i + 1}. ${clean.name} | ${clean.yearsOfExperience}y exp | Skills: ${clean.skills.join(', ')}`;
+}).join('\n')}
 
-SCORING CRITERIA (apply these weighted factors):
-1. SKILLS MATCH (40%): Does candidate have required skills?
-2. EXPERIENCE YEARS (25%): Does candidate meet or exceed required years? Bonus for more years, penalty for less.
-3. EDUCATION RELEVANCE (15%): Does education match requirements?
-4. PROJECT ALIGNMENT (20%): Do past projects demonstrate relevant experience?
-
-Calculate a match score out of 100. Provide clear natural language reasoning via strengths and gaps to ensure "Humans stay in control" of the final decision.
-
-IMPORTANT: Pay close attention to each candidate's "yearsOfExperience" field and compare it to the required ${job.experienceYears || 0} years. Candidates with more relevant experience should score higher.
-
-OUTPUT STRICT JSON FORMAT:
+Return JSON array with this EXACT structure (use candidate UUIDs from the list above):
 [
-  { 
-    "candidateId": "UUID", 
-    "rank": 1, 
-    "score": 95, 
-    "strengths": ["Clear strength 1", "Strength 2 explaining relevance to role"], 
-    "gapsRisks": ["Missing specific technology", "Less experience than requested"], 
-    "finalRecommendation": "SHORTLIST: High potential match due to..." 
-  }
+  { "candidateId": "uuid-from-above-list", "rank": 1, "score": 85, "strengths": ["..."], "gaps": ["..."], "finalRecommendation": "SHORTLIST: ..." }
 ]
-
-IMPORTANT: The candidateId must match exactly one of the candidate IDs provided in CANDIDATES PROFILE DATA. Use the UUID from the candidate's "id" field.
 `;
     try {
 
@@ -127,14 +108,12 @@ IMPORTANT: The candidateId must match exactly one of the candidate IDs provided 
       const text = rawText.trim().replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
       const parsed = JSON.parse(text);
       
-      // Map results back to actual candidate IDs using rank position
+      // Map results back to actual candidate IDs using the candidateId field
       return parsed.map((item: any, index: number) => {
         const candidateId = item.candidateId;
         const rank = item.rank || (index + 1);
-        // Use the rank to get the correct candidate
-        const matchedCandidate = candidates[rank - 1] || candidates[index] || candidates[0];
         return {
-          candidateId: matchedCandidate?.id || candidateId,
+          candidateId: candidateId, // Use the UUID from AI results
           rank: rank,
           score: item.score,
           strengths: item.strengths || [],

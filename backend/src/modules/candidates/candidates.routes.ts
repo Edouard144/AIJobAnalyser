@@ -348,11 +348,15 @@ const bulkInsertLimiter = rateLimit({
 // Scenario 1 — structured JSON bulk insert
 router.post("/bulk", bulkInsertLimiter, validate(bulkCandidatesSchema), candidatesController.bulkInsert);
 
+// Recalculate experience years from profile data (must be before /:id)
+router.post("/recalculate-experience", candidatesController.recalculateExperience);
+
 // Scenario 2 — CSV file upload
 router.post("/upload-csv", upload.single("file"), candidatesController.uploadCSV);
 
 // Standard CRUD
 router.get( "/",           validate(paginationSchema), candidatesController.getByJob);
+router.post("/bulk", bulkInsertLimiter, validate(bulkCandidatesSchema), candidatesController.bulkInsert);
 router.get( "/:id",                                  candidatesController.getOne);
 router.patch("/:id/status",                         candidatesController.updateStatus);
 router.patch("/:id",                                candidatesController.update);

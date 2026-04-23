@@ -34,7 +34,8 @@ type Candidate = {
 export default function Candidates() {
   const [loading, setLoading] = useState(true);
   const [jobs, setJobs] = useState<any[]>([]);
-  const [selectedJob, setSelectedJob] = useState<string>('');
+  const [selectedJob, setSelectedJob] = useState<string>('all');
+  const [allCandidates, setAllCandidates] = useState<Candidate[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [view, setView] = useState<'table' | 'card'>('card');
   const [search, setSearch] = useState('');
@@ -43,6 +44,22 @@ export default function Candidates() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  const loadCandidatesForJob = async (jobId: string) => {
+    if (jobId === 'all') {
+// Fetch candidates from ALL jobs in parallel
+      const results = await Promise.all(
+        jobs.map((j: any) => jobsApi.getCandidates(j.id))
+      );
+      const combined = results.flatMap((r: any) => r.data || r || []);
+      setCandidates(combined);
+      setAllCandidates(combined);
+    } else {
+      const cands: any = await jobsApi.getCandidates(jobId);
+      const jobCandidates = Array.isArray(cands) ? cands : (cands?.data || []);
+      setCandidates(jobCandidates);
+    }
+  };
 
   useEffect(() => {
     const loadJobs = async () => {
@@ -64,13 +81,10 @@ export default function Candidates() {
         );
         
         setJobs(jobsWithCounts);
+        // Load all candidates by default
         if (jobsWithCounts.length > 0) {
-          setSelectedJob(jobsWithCounts[0].id);
           setLoading(true);
-          const cands: any = await jobsApi.getCandidates(jobsWithCounts[0].id);
-          setCandidates(Array.isArray(cands) ? cands : (cands?.data || []));
-        } else {
-          setCandidates([]);
+          await loadCandidatesForJob('all');
         }
       } catch {
         setJobs([]);
@@ -82,6 +96,13 @@ export default function Candidates() {
     
     loadJobs();
   }, []);
+
+  // When job selection changes, reload candidates
+  useEffect(() => {
+    if (jobs.length > 0) {
+      loadCandidatesForJob(selectedJob);
+    }
+  }, [selectedJob, jobs]);
 
   const topMatches = candidates.filter(c => (c.matchScore || 0) >= 85).length;
 
@@ -95,10 +116,16 @@ export default function Candidates() {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !selectedJob) return;
+    console.log('[CSV Upload] File selected:', file?.name, 'Job ID:', selectedJob);
+    if (!file || !selectedJob) {
+      toast.error('Please select a job first');
+      return;
+    }
     setUploading(true);
     try {
+      console.log('[CSV Upload] Starting upload...');
       const result: any = await jobsApi.uploadCandidates(selectedJob, file);
+      console.log('[CSV Upload] Result:', result);
       const count = result?.inserted || result?.candidates?.length || 0;
       toast.success(`${count} candidate${count !== 1 ? 's' : ''} uploaded!`);
       setUploadOpen(false);
@@ -107,6 +134,7 @@ export default function Candidates() {
       setCandidates(uploaded);
       activityApi.create('candidates_uploaded', selectedJob, { count: uploaded.length }).catch(() => {});
     } catch (err: any) {
+      console.error('[CSV Upload] Error:', err);
       toast.error(err.message);
     } finally {
       setUploading(false);
@@ -134,7 +162,7 @@ export default function Candidates() {
             onChange={(e) => setSelectedJob(e.target.value)}
             className="h-10 px-3 rounded-lg bg-muted border text-sm"
           >
-            <option value="">Select a job</option>
+            <option value="all">All jobs</option>
             {jobs.map((j: any) => (
               <option key={j.id} value={j.id}>{j.title}</option>
             ))}
@@ -203,44 +231,48 @@ export default function Candidates() {
       {/* Card view */}
       {view === 'card' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filtered.map((c, i) => (
-            <button
-              key={c.id} onClick={() => setSelected(c)}
-              className="group glass rounded-2xl p-5 text-left hover:scale-[1.02] hover:shadow-elegant hover:border-primary/40 transition-all duration-300 animate-fade-in-up"
-              style={{ animationDelay: `${Math.min(i * 30, 600)}ms` }}
-            >
-              <div className="flex items-start gap-3 mb-3">
-                <GradientAvatar name={c.fullName || `${c.firstName || ''} ${c.lastName || ''}`} size={40} />
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{c.fullName || `${c.firstName || ''} ${c.lastName || ''}`}</p>
-                  <p className="text-xs text-muted-foreground truncate">{c.currentPosition || c.email}</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-between mt-2">
-                {c.matchScore != null && c.matchScore > 0 ? (
-                  <ScoreRing score={c.matchScore || 0} size={48} />
-                ) : (
-                  <div className="h-12 w-12 flex items-center justify-center rounded-full bg-muted">
-                    <span className="text-xs text-muted-foreground">—</span>
-                  </div>
-                )}
-                <div className="text-right">
-                  <span className={cn('text-[10px] font-semibold px-2 py-1 rounded-full',
-                    c.matchScore != null && c.matchScore > 0 && c.matchScore >= 85 && 'bg-success/10 text-success',
-                    c.matchScore != null && c.matchScore > 0 && c.matchScore >= 60 && c.matchScore < 85 && 'bg-warning/10 text-warning',
-                    c.matchScore != null && c.matchScore > 0 && c.matchScore < 60 && 'bg-destructive/10 text-destructive',
-                    (c.matchScore == null || c.matchScore === 0) && 'bg-muted text-muted-foreground',
-                  )}>{c.matchScore != null && c.matchScore > 0 ? (c.status || 'Screened') : 'Not screened'}</span>
-                  <div className="mt-1.5 flex flex-wrap gap-1 justify-end">
-                    {(c.skills || []).slice(0, 2).map((s: any, i: number) => {
-                      const name = typeof s === 'string' ? s : (s.name || '');
-                      return name ? <span key={name || i} className="text-[9px] px-1.5 py-0.5 rounded bg-muted">{name}</span> : null;
-                    })}
+          {filtered.map((c, i) => {
+            const name = c.fullName || `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Unknown';
+            return (
+              <button
+                key={c.id} onClick={() => setSelected(c)}
+                className="group glass rounded-2xl p-4 text-left hover:scale-[1.02] hover:shadow-elegant hover:border-primary/40 transition-all duration-300 animate-fade-in-up"
+                style={{ animationDelay: `${Math.min(i * 30, 600)}ms` }}
+              >
+                <div className="flex items-start gap-3 mb-3">
+                  <GradientAvatar name={name} size={36} />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{c.currentPosition || c.email}</p>
+                    <p className="text-[10px] text-muted-foreground">{c.experienceYears ?? 0} years exp</p>
                   </div>
                 </div>
-              </div>
-            </button>
-          ))}
+                <div className="flex items-center justify-between mt-2">
+                  {c.matchScore != null && c.matchScore > 0 ? (
+                    <ScoreRing score={c.matchScore || 0} size={44} stroke={5} />
+                  ) : (
+                    <div className="h-11 w-11 flex items-center justify-center rounded-full bg-muted">
+                      <span className="text-xs text-muted-foreground">—</span>
+                    </div>
+                  )}
+                  <div className="text-right">
+                    <span className={cn('text-[10px] font-semibold px-2 py-1 rounded-full',
+                      c.matchScore != null && c.matchScore > 0 && c.matchScore >= 85 && 'bg-success/10 text-success',
+                      c.matchScore != null && c.matchScore > 0 && c.matchScore >= 60 && c.matchScore < 85 && 'bg-warning/10 text-warning',
+                      c.matchScore != null && c.matchScore > 0 && c.matchScore < 60 && 'bg-destructive/10 text-destructive',
+                      (c.matchScore == null || c.matchScore === 0) && 'bg-muted text-muted-foreground',
+                    )}>{c.matchScore != null && c.matchScore > 0 ? (c.status || 'Screened') : 'Not screened'}</span>
+                    <div className="mt-1.5 flex flex-wrap gap-1 justify-end">
+                      {(c.skills || []).slice(0, 2).map((s: any, idx: number) => {
+                        const skillName = typeof s === 'string' ? s : (s.name || '');
+                        return skillName ? <span key={skillName || idx} className="text-[9px] px-1.5 py-0.5 rounded bg-muted">{skillName}</span> : null;
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
         </div>
       ) : (
         <div className="glass rounded-2xl overflow-hidden">

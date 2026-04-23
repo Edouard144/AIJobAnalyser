@@ -239,31 +239,47 @@ export const candidatesService = {
       };
     };
 
-    // Helper: parse experience/education (pipe-separated)
+    // Helper: parse experience/education (pipe-separated) - handles multiple entries
     const parseExperience = (value: string | undefined): any[] => {
       if (!value) return [];
       const trimmed = value.trim();
       if (!trimmed) return [];
-      // Handle pipe-separated: company|role|start|end|description
-      if (trimmed.includes('|')) {
-        const parts = trimmed.split('|');
-        const startYear = parseInt(parts[2]) || 0;
-        const endYear = parts[3]?.trim().toLowerCase() === 'present' 
+      
+      const results: any[] = [];
+      
+      // Split by | to get individual entries, but also try splitting by comma for multiple entries
+      // Each entry format: company|role|startYear|endYear|description
+      const lines = trimmed.split('\n').map(l => l.trim()).filter(l => l);
+      const entries = lines.flatMap(line => line.split(',')).map(l => l.trim()).filter(l => l);
+      
+      for (const entry of entries) {
+        if (!entry.includes('|')) continue;
+        
+        const parts = entry.split('|').map(p => p.trim());
+        if (parts.length < 3) continue;
+        
+        const startYearStr = parts[2]?.replace(/\D/g, '') || '0'; // Remove non-digits
+        const startYear = parseInt(startYearStr) || 0;
+        const endStr = parts[3]?.toLowerCase() || '';
+        const endYear = endStr.includes('present') 
           ? new Date().getFullYear() 
-          : parseInt(parts[3]) || startYear;
-        const years = endYear - startYear;
-        return [{
-          company: parts[0]?.trim() || "",
-          role: parts[1]?.trim() || "",
-          startDate: parts[2]?.trim() || "",
-          endDate: parts[3]?.trim() || "",
-          description: parts[4]?.trim() || "",
+          : parseInt(parts[3]?.replace(/\D/g, '') || String(startYear)) || startYear;
+        
+        const years = endYear > startYear ? endYear - startYear : 0;
+        
+        results.push({
+          company: parts[0] || "",
+          role: parts[1] || "",
+          startDate: parts[2] || "",
+          endDate: parts[3] || "",
+          description: parts[4] || "",
           technologies: [],
-          isCurrent: parts[3]?.trim().toLowerCase() === 'present',
-          yearsOfExperience: years > 0 ? years : 0
-        }];
+          isCurrent: endStr.includes('present'),
+          yearsOfExperience: years
+        });
       }
-      return [];
+      
+      return results;
     };
 
     // Helper: calculate total years of experience from experience array
@@ -297,6 +313,7 @@ export const candidatesService = {
       // Handle separate firstName/lastName or combined fullName
       const fName = row.firstName || row.first_name || row.FirstName || row.fullName?.split(" ")[0] || "Unknown";
       const lName = row.lastName || row.last_name || row.LastName || row.fullName?.split(" ").slice(1).join(" ") || "Candidate";
+      const fullName = `${fName} ${lName}`.trim();
       
       // Parse complex fields using new helpers
       const skillNames = parseArrayField(row.skills);
@@ -308,11 +325,15 @@ export const candidatesService = {
       const availabilityData = parseAvailability(row.availability);
       const socialData = {};
       
+      // Parse experience years - ensure it's a number
+      const expYearsRaw = row.experience_years || row.experienceYears || row.years_experience || row.experience_years_exp || "0";
+      const expYears = parseInt(String(expYearsRaw).trim()) || 0;
+      
       return {
         jobId,
         firstName:       fName,
         lastName:        lName,
-        fullName:        `${fName} ${lName}`.trim(),
+        fullName:        fullName,
         email:           row.email || row.Email || null,
         phone:           row.phone || row.Phone || null,
         headline:        row.headline || row.Headline || row.current_position || "Talent",
@@ -330,8 +351,7 @@ export const candidatesService = {
         socialLinks:     Object.keys(socialData).length > 0 ? socialData : undefined,
         
         // Calculate years of experience from parsed data, fallback to CSV column
-        experienceYears: calculateYearsOfExperience(experienceData) || 
-                          parseInt(row.experience_years || row.experienceYears || row.years_experience || "0") || 0,
+        experienceYears: calculateYearsOfExperience(experienceData) || expYears,
         educationLevel:  row.education_level || row.educationLevel || row.education || null,
         currentPosition: row.current_position || row.position || null,
         source:          "external" as const,
@@ -429,5 +449,53 @@ export const candidatesService = {
   // ── Delete ALL candidates for a job (before re-uploading) ─────────────────
   async removeAll(jobId: string) {
     await db.delete(candidates).where(eq(candidates.jobId, jobId));
+  },
+
+  // ── Recalculate experience years for all candidates in a job ──────────────
+  async recalculateExperienceYears(jobId: string) {
+    // Get all candidates for this job
+    const allCandidates = await db
+      .select()
+      .from(candidates)
+      .where(eq(candidates.jobId, jobId));
+
+    let updated = 0;
+    const currentYear = new Date().getFullYear();
+
+    for (const candidate of allCandidates) {
+      // Try to calculate from profileData.experience field
+      const profileData = candidate.profileData as Record<string, any> || {};
+      const experienceStr = profileData.experience || '';
+      
+      let calculatedYears = 0;
+      
+      if (experienceStr && experienceStr.includes('|')) {
+        const parts = experienceStr.split('|');
+        if (parts.length >= 3) {
+          const startYearStr = parts[2]?.replace(/\D/g, '') || '0';
+          const startYear = parseInt(startYearStr) || 0;
+          
+          if (startYear > 0) {
+            const endStr = parts[3]?.toLowerCase() || '';
+            const endYear = endStr.includes('present') 
+              ? currentYear 
+              : parseInt(parts[3]?.replace(/\D/g, '') || String(startYear)) || startYear;
+            
+            calculatedYears = endYear > startYear ? endYear - startYear : 0;
+          }
+        }
+      }
+
+      // Update if calculated years > 0 and current is 0 or different
+      if (calculatedYears > 0 && (candidate.experienceYears === 0 || candidate.experienceYears === null)) {
+        await db
+          .update(candidates)
+          .set({ experienceYears: calculatedYears })
+          .where(eq(candidates.id, candidate.id));
+        updated++;
+      }
+    }
+
+    return { total: allCandidates.length, updated };
   },
 };

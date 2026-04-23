@@ -70,8 +70,10 @@ export default function Screenings() {
       if (p >= 100) {
         clearInterval(tick);
         setTimeout(async () => {
+          console.log('[Screening] Starting screening for job:', selectedJob);
           try {
             const data: any = await screeningApi.run(selectedJob, 10);
+            console.log('[Screening] Result:', data);
             const resultsData = data.results || data || [];
             setResults(resultsData);
             setStep('results');
@@ -86,6 +88,7 @@ export default function Screenings() {
             }
             activityApi.create('screening_completed', selectedJob, `Completed screening for ${resultsData.length} candidate${resultsData.length !== 1 ? 's' : ''}`).catch(() => {});
           } catch (err: any) {
+            console.error('[Screening] Error:', err);
             toast.error(err.message);
             setStep('select');
           }
@@ -154,7 +157,29 @@ export default function Screenings() {
             <p className="text-muted-foreground mt-1">{job?.title || 'Job'} · {results.length} candidates analyzed</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" className="gap-2"><Download className="h-4 w-4" />Export CSV</Button>
+            <Button variant="outline" className="gap-2" onClick={() => {
+              const headers = ['Rank', 'Name', 'Email', 'Score', 'Recommendation', 'Strengths', 'Gaps'];
+              const rows = results.map((r: any) => {
+                const cand = r.candidate || r;
+                return [
+                  r.rank || 0,
+                  cand.fullName || `${cand.firstName || ''} ${cand.lastName || ''}`.trim(),
+                  cand.email || '',
+                  r.score || 0,
+                  r.recommendation || '',
+                  (r.strengths || []).join('; '),
+                  (r.gaps || []).join('; '),
+                ];
+              });
+              const csv = [headers, ...rows].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+              const blob = new Blob([csv], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `screening-results-${selectedJob}-${new Date().toISOString().split('T')[0]}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}><Download className="h-4 w-4" />Export CSV</Button>
             <Button onClick={() => setStep('select')} className="bg-gradient-primary glow-primary">New screening</Button>
           </div>
         </div>
@@ -170,7 +195,9 @@ export default function Screenings() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {top3.map((c, i) => {
                 const cand = c.candidate || c;
-                const name = cand.fullName || `${cand.firstName || ''} ${cand.lastName || ''}`;
+                const name = cand.fullName || `${cand.firstName || ''} ${cand.lastName || ''}`.trim() || 'Unknown';
+                const expYears = cand.experienceYears ?? 0;
+                const skills = cand.skills || [];
                 return (
                   <div
                     key={c.id || i}
@@ -184,7 +211,7 @@ export default function Screenings() {
                       i === 0 ? 'bg-gradient-primary text-primary-foreground' : 'bg-muted')}>#{i + 1}</div>
                     <GradientAvatar name={name} size={80} />
                     <p className="font-semibold mt-2">{name}</p>
-                    <p className="text-xs text-muted-foreground mb-4">{cand.experienceYears || 0} years exp</p>
+                    <p className="text-xs text-muted-foreground mb-4">{expYears} years exp</p>
                     <ScoreRing score={parseFloat(c.score || 0)} size={80} />
                   </div>
                 );
@@ -195,7 +222,8 @@ export default function Screenings() {
             <div className="space-y-2">
               {results.slice(3).map((c, i) => {
                 const cand = c.candidate || c;
-                const name = cand.fullName || `${cand.firstName || ''} ${cand.lastName || ''}`;
+                const name = cand.fullName || `${cand.firstName || ''} ${cand.lastName || ''}`.trim() || 'Unknown';
+                const skills = cand.skills || [];
                 return (
                   <div key={c.id || i} className="glass rounded-xl p-4 flex items-center gap-4 animate-fade-in-up" style={{ animationDelay: `${(i + 3) * 60}ms` }}>
                     <span className="font-display font-bold text-muted-foreground w-8">#{i + 4}</span>
@@ -203,9 +231,9 @@ export default function Screenings() {
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold truncate">{name}</p>
                       <div className="flex flex-wrap gap-1 mt-1">
-                        {(cand.skills || []).slice(0, 3).map((s: any, i: number) => {
-                          const name = typeof s === 'string' ? s : (s.name || '');
-                          return <span key={name || i} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{name}</span>;
+                        {skills.slice(0, 3).map((s: any, idx: number) => {
+                          const skillName = typeof s === 'string' ? s : (s.name || '');
+                          return skillName ? <span key={skillName || idx} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{skillName}</span> : null;
                         })}
                       </div>
                     </div>

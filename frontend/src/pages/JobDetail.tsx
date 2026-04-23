@@ -1,19 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ChangeEvent } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, MapPin, Users, Clock, Sparkles, Loader2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Users, Clock, Sparkles, Loader2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { jobsApi, screeningApi } from '@/lib/api';
+import { Input } from '@/components/ui/input';
+import { jobsApi, screeningApi, activityApi } from '@/lib/api';
 import { ScoreRing } from '@/components/ScoreRing';
 import { GradientAvatar } from '@/components/Avatar';
 import { cn } from '@/lib/utils';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 export default function JobDetail() {
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
   const [job, setJob] = useState<any>(null);
   const [candidates, setCandidates] = useState<any[]>([]);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -49,6 +55,26 @@ export default function JobDetail() {
     
     loadData();
   }, [id]);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !id) return;
+    setUploading(true);
+    try {
+      const result: any = await jobsApi.uploadCandidates(id, file);
+      const count = result?.inserted || result?.candidates?.length || 0;
+      toast.success(`${count} candidate${count !== 1 ? 's' : ''} uploaded!`);
+      setUploadOpen(false);
+      const cands: any = await jobsApi.getCandidates(id);
+      setCandidates(Array.isArray(cands) ? cands : (cands?.data || []));
+      activityApi.create('candidates_uploaded', id, { count }).catch(() => {});
+    } catch (err: any) {
+      console.error('[CSV Upload] Error:', err);
+      toast.error(err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -127,9 +153,35 @@ export default function JobDetail() {
         {candidates.length === 0 ? (
           <div className="glass rounded-xl p-8 text-center">
             <p className="text-muted-foreground mb-4">No candidates for this job yet</p>
-            <Link to="/candidates">
-              <Button variant="outline">Add Candidates</Button>
-            </Link>
+            <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">Add Candidates</Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <DialogHeader><DialogTitle className="font-display">Upload candidates for {job.title}</DialogTitle></DialogHeader>
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDragEnd={() => setDragOver(false)}
+                  className={cn(
+                    'rounded-2xl border-2 border-dashed p-10 text-center transition-all cursor-pointer',
+                    dragOver ? 'border-primary bg-primary/5 scale-[1.01]' : 'border-border hover:border-primary/50'
+                  )}
+                >
+                  <div className="mx-auto h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+                    <Upload className="h-6 w-6 text-primary" />
+                  </div>
+                  <p className="font-semibold mb-1">Drop CSV here</p>
+                  <p className="text-xs text-muted-foreground">CSV file with candidate data</p>
+                  <input type="file" accept=".csv" onChange={handleFileUpload} className="hidden" id="job-csv-upload" />
+                  <label htmlFor="job-csv-upload">
+                    <Button variant="outline" size="sm" className="mt-4 cursor-pointer" asChild>
+                      <span>{uploading ? 'Uploading...' : 'or browse files'}</span>
+                    </Button>
+                  </label>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         ) : (
           <div className="grid gap-3">

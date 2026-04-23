@@ -18,6 +18,12 @@ CREATE INDEX IF NOT EXISTS idx_candidates_status ON candidates(status);
 -- Candidates: Composite index for job candidates ordered by date
 CREATE INDEX IF NOT EXISTS idx_candidates_job_created ON candidates(job_id, created_at DESC);
 
+-- Candidates: Index on email (check for duplicates during upload)
+CREATE INDEX IF NOT EXISTS idx_candidates_email ON candidates(email);
+
+-- Candidates: Index on experienceYears (for sorting/filtering)
+CREATE INDEX IF NOT EXISTS idx_candidates_exp_years ON candidates(experience_years);
+
 -- Screening Results: Index on jobId
 CREATE INDEX IF NOT EXISTS idx_screening_job_id ON screening_results(job_id);
 
@@ -26,6 +32,9 @@ CREATE INDEX IF NOT EXISTS idx_screening_candidate_id ON screening_results(candi
 
 -- Screening Results: Composite index for job's results ordered by rank
 CREATE INDEX IF NOT EXISTS idx_screening_job_rank ON screening_results(job_id, rank);
+
+-- Screening Results: Composite index for job + candidate (used in joins)
+CREATE INDEX IF NOT EXISTS idx_screening_job_candidate ON screening_results(job_id, candidate_id);
 
 -- Activity: Index on userId and createdAt
 CREATE INDEX IF NOT EXISTS idx_activity_user_created ON activity(user_id, created_at DESC);

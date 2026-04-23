@@ -23,7 +23,7 @@ interface RequestOptions extends RequestInit {
 async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
   
-  // Add timeout (30 seconds default)
+  // Add timeout (30 seconds default, or custom)
   const { timeout = 30000, ...fetchOptions } = options;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -46,6 +46,11 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     
     const data = await res.json();
     return data.data || data;
+  } catch (err: any) {
+    if (err.name === 'AbortError') {
+      throw new Error('Request timed out. Please try again.');
+    }
+    throw err;
   } finally {
     clearTimeout(timeoutId);
   }
@@ -132,28 +137,41 @@ uploadCandidates: (jobId: string, file: File) => {
     const formData = new FormData();
     formData.append('file', file);
 
-    return fetch(`${API_BASE}/jobs/${jobId}/candidates/upload-csv`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${getToken()}` },
-      body: formData,
-    }).then(async res => {
-      if (!res.ok) {
-        if (res.status === 401) {
-          clearAuth();
-          window.location.href = '/login';
+    return new Promise(async (resolve, reject) => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60000);
+
+      try {
+        const res = await fetch(`${API_BASE}/jobs/${jobId}/candidates/upload-csv`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${getToken()}` },
+          body: formData,
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        if (!res.ok) {
+          if (res.status === 401) {
+            clearAuth();
+            window.location.href = '/login';
+          }
+          const errorData = await res.json().catch(() => ({ message: 'Upload failed' }));
+          throw new Error(errorData.message || `Upload failed (${res.status})`);
         }
-        const errorData = await res.json().catch(() => ({ message: 'Upload failed' }));
-        throw new Error(errorData.message || `Upload failed (${res.status})`);
+        const data = await res.json();
+        resolve(data.data || data);
+      } catch (err) {
+        clearTimeout(timeout);
+        reject(err);
       }
-      return res.json();
-    }).then(data => data.data || data);
+    });
   },
 };
 
 // Screening
 export const screeningApi = {
   run: (jobId: string, topN: number = 10) => 
-    request(`/jobs/${jobId}/screening/run?top=${topN}`, { method: 'POST' }),
+    request(`/jobs/${jobId}/screening/run?top=${topN}`, { method: 'POST', timeout: 120000 }),
   
   getResults: (jobId: string) => 
     request(`/jobs/${jobId}/screening/results`),
@@ -162,7 +180,7 @@ export const screeningApi = {
     request(`/jobs/${jobId}/screening/preview`),
   
   getInterviewKit: (jobId: string, candidateId: string) =>
-    request(`/jobs/${jobId}/screening/candidates/${candidateId}/interview-kit`),
+    request(`/jobs/${jobId}/screening/candidates/${candidateId}/interview-kit`, { timeout: 60000 }),
 };
 
 // Team
@@ -226,6 +244,10 @@ export const aiChatApi = {
 const insightsCache: Record<string, { data: any; timestamp: number }> = {};
 const CACHE_TTL = 30000; // 30 seconds cache
 
+export const clearInsightsCache = () => {
+  Object.keys(insightsCache).forEach(key => delete insightsCache[key]);
+};
+
 const getCached = (key: string) => {
   const cached = insightsCache[key];
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
@@ -244,46 +266,50 @@ export const insightsApi = {
     const cached = getCached(cacheKey);
     if (cached) return cached;
     
-    const res: any = await jobsApi.getAll();
-    const jobs = Array.isArray(res) ? res : (res?.data || []);
-    
-    const totalJobs = jobs.length;
-    
-    // Fetch actual candidate counts for each job in parallel
-    const candidatePromises = jobs.map(job => 
-      jobsApi.getCandidates(job.id).catch(() => ({ data: [] }))
-    );
-    const candidateResults = await Promise.all(candidatePromises);
-    const totalCandidates = candidateResults.reduce((sum, cands: any) => {
-      return sum + (Array.isArray(cands) ? cands.length : (cands?.data?.length || 0));
-    }, 0);
-    
-    // Count actual screening sessions and get avg score in parallel
-    let screeningsRun = 0;
-    let totalScore = 0;
-    let scoreCount = 0;
-    
-    const screeningPromises = jobs.map(job => screeningApi.getResults(job.id));
-    const screeningResults = await Promise.all(screeningPromises);
-    
-    screeningResults.forEach((res: any) => {
-      const results = Array.isArray(res) ? res : (res?.data || []);
-      if (results.length > 0) {
-        screeningsRun++;
-        results.forEach((r: any) => {
-          const score = parseFloat(r.score || 0);
-          if (score > 0) {
-            totalScore += score;
-            scoreCount++;
-          }
-        });
-      }
-    });
-    
-    const avgMatch = scoreCount > 0 ? Math.round(totalScore / scoreCount) : 0;
-    const result = { totalJobs, totalCandidates, screeningsRun, avgMatch };
-    setCached(cacheKey, result);
-    return result;
+    try {
+      const res: any = await jobsApi.getAll();
+      const jobs = Array.isArray(res) ? res : (res?.data || []);
+      
+      const totalJobs = jobs.length;
+      
+      // Fetch actual candidate counts for each job in parallel
+      const candidatePromises = jobs.map(job => 
+        jobsApi.getCandidates(job.id).catch(() => ({ data: [] }))
+      );
+      const candidateResults = await Promise.all(candidatePromises);
+      const totalCandidates = candidateResults.reduce((sum, cands: any) => {
+        return sum + (Array.isArray(cands) ? cands.length : (cands?.data?.length || 0));
+      }, 0);
+      
+      // Count actual screening sessions and get avg score in parallel
+      let screeningsRun = 0;
+      let totalScore = 0;
+      let scoreCount = 0;
+      
+      const screeningPromises = jobs.map(job => screeningApi.getResults(job.id).catch(() => []));
+      const screeningResults = await Promise.all(screeningPromises);
+      
+      screeningResults.forEach((res: any) => {
+        const results = Array.isArray(res) ? res : (res?.data || []);
+        if (results.length > 0) {
+          screeningsRun++;
+          results.forEach((r: any) => {
+            const score = parseFloat(r.score || 0);
+            if (score > 0) {
+              totalScore += score;
+              scoreCount++;
+            }
+          });
+        }
+      });
+      
+      const avgMatch = scoreCount > 0 ? Math.round(totalScore / scoreCount) : 0;
+      const result = { totalJobs, totalCandidates, screeningsRun, avgMatch };
+      setCached(cacheKey, result);
+      return result;
+    } catch {
+      return { totalJobs: 0, totalCandidates: 0, screeningsRun: 0, avgMatch: 0 };
+    }
   },
   
   getScreeningActivity: async () => {
@@ -295,7 +321,7 @@ export const insightsApi = {
     const jobs = Array.isArray(res) ? res : (res?.data || []);
     
     // Get all screening results in parallel
-    const screeningPromises = jobs.map(job => screeningApi.getResults(job.id));
+    const screeningPromises = jobs.map(job => screeningApi.getResults(job.id).catch(() => []));
     const allResults = await Promise.all(screeningPromises);
     const now = new Date();
     
@@ -336,7 +362,7 @@ export const insightsApi = {
     let high = 0, mid = 0, low = 0;
     
     // Get all screening results in parallel
-    const screeningPromises = jobs.map(job => screeningApi.getResults(job.id));
+    const screeningPromises = jobs.map(job => screeningApi.getResults(job.id).catch(() => []));
     const allResults = await Promise.all(screeningPromises);
     
     allResults.forEach((res: any) => {

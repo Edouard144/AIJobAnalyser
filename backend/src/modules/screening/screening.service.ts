@@ -8,8 +8,9 @@ import { geminiService } from "./gemini.service";
 
 export const screeningService = {
 
-  // ── Run full AI screening for a job ───────────────────────────────────────
+// ── Run full AI screening for a job ───────────────────────────────────────
   async runScreening(jobId: string, topN: number = 10) {
+    console.log('[Screening Service] Starting for job:', jobId, 'topN:', topN);
 
     // 1. Fetch the job — use eq with explicit uuid cast
     const [job] = await db
@@ -19,6 +20,7 @@ export const screeningService = {
       .limit(1);
 
     if (!job) throw new Error("Job not found");
+    console.log('[Screening Service] Job found:', job.title);
 
     // 2. Fetch all candidates for this job
     const allCandidates = await db
@@ -26,32 +28,36 @@ export const screeningService = {
       .from(candidates)
       .where(eq(candidates.jobId, jobId));
 
+    console.log('[Screening Service] Candidates found:', allCandidates.length);
     if (allCandidates.length === 0) {
       throw new Error("No candidates found for this job");
     }
 
     // 3. Send everything to Gemini
+    console.log('[Screening Service] Calling Gemini service...');
     const aiResults = await geminiService.screenCandidates(job, allCandidates, topN);
+    console.log('[Screening Service] AI results:', aiResults.length);
 
-    // 4. Delete previous screening results for this job (fresh re-screen)
+// 4. Delete previous screening results for this job (fresh re-screen)
     await db
       .delete(screeningResults)
       .where(eq(screeningResults.jobId, jobId));
 
-// 5. Save all AI results to DB in one insert call
-    // Map AI results back to actual candidate UUIDs
-    
-    // Ensure we have candidates to work with
+    // 5. Save all AI results to DB - use actual candidateId from AI results
     if (allCandidates.length === 0) {
       throw new Error('No candidates found for this job');
     }
     
+    // Build a map of candidates by their ID for quick lookup
+    const candidateMap = new Map(allCandidates.map(c => [c.id, c]));
+    
     const toInsert = aiResults.map((r, index) => {
-      const targetIndex = index < allCandidates.length ? index : 0;
-      const candidate = allCandidates[targetIndex];
+      // Use the candidateId from AI result, not the array index
+      const candidateId = r.candidateId || allCandidates[index]?.id;
+      const candidate = candidateMap.get(candidateId) || allCandidates[index];
       
       if (!candidate || !candidate.id) {
-        console.error(`No candidate found at index ${index}, candidates length: ${allCandidates.length}`);
+        console.error(`No candidate found for ID: ${candidateId}`);
         throw new Error(`Invalid candidate at index ${index}`);
       }
       
@@ -61,7 +67,7 @@ export const screeningService = {
       return {
         jobId: jobId,
         candidateId: candidate.id,
-        rank: index + 1,
+        rank: r.rank || (index + 1),
         score: String(Number(r.score || 50).toFixed(2)),
         strengths: strengths,
         gaps: gaps,
@@ -70,7 +76,7 @@ export const screeningService = {
       };
     });
 
-    const saved = await db
+const saved = await db
       .insert(screeningResults)
       .values(toInsert)
       .returning();
@@ -81,11 +87,32 @@ export const screeningService = {
       .set({ status: "screening" })
       .where(eq(jobs.id, jobId));
 
+    // 7. Return full results with candidate info (same format as getResults)
+    const fullResults = saved.map(savedResult => {
+      const candidate = candidateMap.get(savedResult.candidateId);
+      return {
+        ...savedResult,
+        candidate: candidate ? {
+          id: candidate.id,
+          firstName: candidate.firstName,
+          lastName: candidate.lastName,
+          fullName: candidate.fullName,
+          email: candidate.email,
+          skills: candidate.skills,
+          experienceYears: candidate.experienceYears,
+          educationLevel: candidate.educationLevel,
+          currentPosition: candidate.currentPosition,
+          resumeUrl: candidate.resumeUrl,
+          source: candidate.source,
+        } : null,
+      };
+    });
+
     return {
       jobId,
       totalCandidates: allCandidates.length,
       shortlisted:     saved.length,
-      results:         saved,
+      results:         fullResults,
     };
   },
 

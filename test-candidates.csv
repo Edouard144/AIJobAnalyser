@@ -1,0 +1,6 @@
+firstName,lastName,email,phone,skills,experienceYears,educationLevel,currentPosition,location
+John,Doe,john.doe@email.com,+1234567890,"JavaScript|React|Node.js",5,Bachelor,Senior Developer,New York
+Jane,Smith,jane.smith@email.com,+0987654321,"Python|Django|PostgreSQL",3,Master,Backend Engineer,San Francisco
+Bob,Wilson,bob.wilson@email.com,+1122334455,"Java|Spring Boot|Microservices",7,PhD,Tech Lead,Seattle
+Alice,Brown,alice.brown@email.com,+5544332211,"React|TypeScript|Vue",4,Bachelor,Frontend Developer, Austin
+Charlie,Davis,charlie.davis@email.com,+6677889900,"Go|docker|Kubernetes",6,Master,DevOps Engineer,Chicago

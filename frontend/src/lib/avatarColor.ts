@@ -24,10 +24,12 @@ export function avatarGradient(name: string): string {
 }
 
 export function initials(name: string): string {
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((n) => n[0]?.toUpperCase() ?? '')
-    .join('');
+  const parts = name.split(' ').filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) {
+    // For single names, use first 2 characters
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  // For full names, use first letter of first two parts
+  return (parts[0][0] + (parts[1][0] || '')).toUpperCase();
 }

@@ -29,20 +29,31 @@ export const candidatesController = {
     }
   },
 
-  // ── Scenario 2: POST /api/jobs/:jobId/candidates/upload-csv ───────────────
+// ── Scenario 2: POST /api/jobs/:jobId/candidates/upload-csv ───────────────
   async uploadCSV(req: Request, res: Response) {
     try {
+      console.log('[CSV Upload] Endpoint hit');
+      console.log('[CSV Upload] jobId:', req.params.jobId);
+      console.log('[CSV Upload] req.file:', req.file ? { name: req.file.originalname, size: req.file.size } : 'NONE');
+      
       const jobId = req.params.jobId as string;
 
       const job = await candidatesService.verifyJobOwnership(jobId, req.user!.userId);
+      console.log('[CSV Upload] Job ownership verified:', job ? 'YES' : 'NO');
       if (!job) { sendError(res, "Job not found", 404); return; }
 
       // Multer puts the file in req.file
-      if (!req.file) { sendError(res, "No CSV file uploaded", 400); return; }
+      if (!req.file) { 
+        console.log('[CSV Upload] No file in request');
+        sendError(res, "No CSV file uploaded", 400); return; 
+      }
 
+      console.log('[CSV Upload] Parsing CSV...');
       const result = await candidatesService.insertFromCSV(jobId, req.file.buffer);
+      console.log('[CSV Upload] Success, inserted:', result.length);
       sendSuccess(res, { inserted: result.length, candidates: result }, "CSV imported", 201);
     } catch (err: any) {
+      console.error('[CSV Upload] Error:', err);
       sendError(res, err.message, 400);
     }
   },
@@ -98,7 +109,7 @@ export const candidatesController = {
     }
   },
 
-  // ── DELETE /api/jobs/:jobId/candidates ────────────────────────────────────
+// ── DELETE /api/jobs/:jobId/candidates ────────────────────────────────────
 async removeAll(req: Request, res: Response) {
     try {
       const jobId = req.params.jobId as string;
@@ -108,6 +119,21 @@ async removeAll(req: Request, res: Response) {
 
       await candidatesService.removeAll(jobId);
       sendSuccess(res, null, "All candidates removed");
+    } catch (err: any) {
+      sendError(res, err.message);
+    }
+  },
+
+  // ── POST /api/jobs/:jobId/candidates/recalculate-experience ───────────────
+  async recalculateExperience(req: Request, res: Response) {
+    try {
+      const jobId = req.params.jobId as string;
+
+      const job = await candidatesService.verifyJobOwnership(jobId, req.user!.userId);
+      if (!job) { sendError(res, "Job not found", 404); return; }
+
+      const result = await candidatesService.recalculateExperienceYears(jobId);
+      sendSuccess(res, result, "Experience years recalculated");
     } catch (err: any) {
       sendError(res, err.message);
     }
