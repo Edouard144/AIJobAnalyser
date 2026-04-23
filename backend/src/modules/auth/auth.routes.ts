@@ -215,7 +215,12 @@ router.post("/register", validate(registerSchema), authController.register);
 router.post("/login",    authLimiter, validate(loginSchema),    authController.login);
 router.post("/refresh",  validate(refreshSchema),  authController.refresh);
 
+// OTP routes (public)
+router.post("/send-otp", authController.sendOTP);
+router.post("/verify-otp", authController.verifyOTP);
+
 // Protected — requires valid access token
 router.get("/me", requireAuth, authController.me);
+router.patch("/me", requireAuth, authController.updateMe);
 
 export default router;

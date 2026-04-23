@@ -31,7 +31,7 @@ export const teamController = {
   
   async updateRole(req: Request, res: Response) {
     try {
-      const { userId } = req.params;
+      const userId = req.params.userId as string;
       const { role } = req.body;
       
       if (!role) {
@@ -48,7 +48,7 @@ export const teamController = {
   
   async remove(req: Request, res: Response) {
     try {
-      const { userId } = req.params;
+      const userId = req.params.userId as string;
       await teamService.remove(userId);
       sendSuccess(res, { removed: true }, "Member removed");
     } catch (err: any) {

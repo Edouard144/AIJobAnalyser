@@ -108,7 +108,7 @@
  */
 
 // screening routes
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import rateLimit from "express-rate-limit";
 import { screeningController } from "./screening.controller";
 import { requireAuth } from "../../middleware/auth.middleware";
@@ -129,10 +129,32 @@ const screeningLimiter = rateLimit({
 // Trigger AI screening
 router.post("/run", screeningLimiter, screeningController.run);
 
+// Preview candidates before screening
+router.get("/preview", screeningController.preview);
+
 // Fetch saved results
 router.get("/results",  screeningController.getResults);
 
 // Generate tailored interview questions
 router.get("/candidates/:candidateId/interview-kit", screeningController.generateInterviewKit);
+
+// SSE for screening progress
+router.get("/progress", (req: Request, res: Response) => {
+  const jobId = (req.params as any).jobId || req.query.jobId as string;
+  
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  let progress = 0;
+  const interval = setInterval(() => {
+    progress += 20;
+    res.write(`data: ${JSON.stringify({ jobId, progress, status: progress >= 100 ? "complete" : "processing" })}\n\n`);
+    if (progress >= 100) clearInterval(interval);
+  }, 2000);
+
+  req.on("close", () => clearInterval(interval));
+});
 
 export default router;

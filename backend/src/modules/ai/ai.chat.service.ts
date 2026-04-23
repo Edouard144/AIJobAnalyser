@@ -16,7 +16,7 @@ export const aiChatService = {
   async chat(userId: string, jobId: string | null, question: string) {
     // Get job context if provided
     let jobContext = null;
-    let candidatesData = [];
+    let candidatesData: any[] = [];
     
     if (jobId) {
       const [job] = await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1);
@@ -27,8 +27,8 @@ export const aiChatService = {
         candidatesData = cands;
         // Get screening results
         const results = await db.select().from(screeningResults).where(eq(screeningResults.jobId, jobId));
-        candidatesData = candidatesData.map(c => {
-          const result = results.find(r => r.candidateId === c.id);
+        candidatesData = candidatesData.map((c: any) => {
+          const result = results.find((r: any) => r.candidateId === c.id);
           return { ...c, score: result?.score, rank: result?.rank };
         });
       }
@@ -60,8 +60,8 @@ ${JSON.stringify(candidatesData.slice(0, 20).map(c => ({
         .where(eq(chatSessions.jobId, jobId))
         .orderBy(desc(chatSessions.createdAt))
         .limit(1);
-      if (session?.messages) {
-        history = session.messages;
+      if (session?.messages && Array.isArray(session.messages)) {
+        history = session.messages as any[];
       }
     }
     

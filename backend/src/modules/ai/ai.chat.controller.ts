@@ -22,7 +22,7 @@ export const aiChatController = {
   
   async getHistory(req: Request, res: Response) {
     try {
-      const { jobId } = req.params;
+      const jobId = req.params.jobId as string;
       const messages = await aiChatService.getHistory(req.user!.userId, jobId);
       sendSuccess(res, { messages }, "Chat history");
     } catch (err: any) {

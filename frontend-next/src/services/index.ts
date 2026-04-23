@@ -2,3 +2,8 @@ export * from './auth.service';
 export * from './jobs.service';
 export * from './candidates.service';
 export * from './screening.service';
+export * from './ai.service';
+export * from './notifications.service';
+export * from './activity.service';
+export * from './team.service';
+export * from './billing.service';

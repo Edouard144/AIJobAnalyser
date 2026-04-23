@@ -5,6 +5,16 @@ import { sendSuccess, sendError } from "../../utils/response.utils";
 
 export const screeningController = {
 
+  async preview(req: Request, res: Response) {
+    try {
+      const jobId = req.params.jobId as string;
+      const preview = await screeningService.getPreview(jobId);
+      sendSuccess(res, preview, "CSV preview data");
+    } catch (err: any) {
+      sendError(res, err.message);
+    }
+  },
+
   // POST /api/jobs/:jobId/screening/run?top=10
   async run(req: Request, res: Response) {
     try {

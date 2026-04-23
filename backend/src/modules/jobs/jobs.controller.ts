@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { jobsService } from "./jobs.service";
+import { activityService } from "../activity/activity.service";
 import { sendSuccess, sendError } from "../../utils/response.utils";
 
 export const jobsController = {
@@ -7,6 +8,8 @@ export const jobsController = {
   async create(req: Request, res: Response) {
     try {
       const job = await jobsService.create(req.user!.userId, req.body);
+      // Log activity
+      await activityService.log(req.user!.userId, 'job_created', job.id, { title: job.title });
       sendSuccess(res, job, "Job created", 201);
     } catch (err: any) {
       sendError(res, err.message, 400);

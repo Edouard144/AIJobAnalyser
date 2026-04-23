@@ -151,4 +151,29 @@ export const screeningService = {
       gaps: typeof r.gaps === 'string' ? [r.gaps] : (r.gaps || []),
     }));
   },
+
+  async getPreview(jobId: string) {
+    const [job] = await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1);
+    if (!job) throw new Error("Job not found");
+    
+    const candidatesData = await db
+      .select({
+        id: candidates.id,
+        fullName: candidates.fullName,
+        email: candidates.email,
+        skills: candidates.skills,
+        experienceYears: candidates.experienceYears,
+        educationLevel: candidates.educationLevel,
+        currentPosition: candidates.currentPosition,
+      })
+      .from(candidates)
+      .where(eq(candidates.jobId, jobId))
+      .limit(5);
+    
+    return {
+      job: { id: job.id, title: job.title, requiredSkills: job.requiredSkills },
+      candidates: candidatesData,
+      totalCount: candidatesData.length,
+    };
+  },
 };

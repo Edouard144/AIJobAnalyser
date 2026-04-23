@@ -14,6 +14,9 @@ export const env = {
   FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:5173",
   GCP_PROJECT_ID: process.env.GCP_PROJECT_ID || "gen-lang-client-0278212233",
   GCP_LOCATION: process.env.GCP_LOCATION || "us-central1",
+  // Email SMTP credentials
+  SMTP_USER: process.env.SMTP_USER || "airecruit@gmail.com",
+  SMTP_PASS: process.env.SMTP_PASS || "xuty phda dtvl mctn",
 };
 
 // Crash early if secrets are missing
