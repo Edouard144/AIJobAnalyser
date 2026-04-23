@@ -147,7 +147,7 @@ export default function JobDetail() {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold truncate">{name}</p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {c.experienceYears || 0} years exp · {(c.skills || []).slice(0, 3).join(', ')}
+                      {c.experienceYears || 0} years exp · {(c.skills || []).slice(0, 3).map((s: any) => typeof s === 'string' ? s : s.name).join(', ')}
                     </p>
                   </div>
                   <ScoreRing score={score} size={48} stroke={4} />

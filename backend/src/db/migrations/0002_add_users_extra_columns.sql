@@ -1,0 +1,11 @@
+ALTER TABLE "users" ADD COLUMN "onboarding_completed" boolean DEFAULT false;
+ALTER TABLE "users" ADD COLUMN "language" varchar(10) DEFAULT 'en';
+ALTER TABLE "users" ADD COLUMN "theme" varchar(10) DEFAULT 'dark';
+ALTER TABLE "users" ADD COLUMN "role" varchar(20) DEFAULT 'recruiter';
+ALTER TABLE "users" ADD COLUMN "team_id" uuid;
+ALTER TABLE "users" ADD COLUMN "plan" varchar(20) DEFAULT 'free';
+ALTER TABLE "users" ADD COLUMN "usage_count" varchar(10) DEFAULT '0';
+ALTER TABLE "users" ADD COLUMN "billing_cycle_start" timestamp;
+ALTER TABLE "users" ADD COLUMN "email_verified" boolean DEFAULT false;
+ALTER TABLE "users" ADD COLUMN "otp_code" varchar(6);
+ALTER TABLE "users" ADD COLUMN "otp_expires_at" timestamp;

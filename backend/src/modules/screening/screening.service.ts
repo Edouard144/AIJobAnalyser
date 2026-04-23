@@ -40,9 +40,6 @@ export const screeningService = {
 
 // 5. Save all AI results to DB in one insert call
     // Map AI results back to actual candidate UUIDs
-    console.log('📊 AI Results received:', JSON.stringify(aiResults.slice(0, 3)));
-    console.log('📊 Candidates available:', allCandidates.length);
-    console.log('📊 First 3 candidates:', allCandidates.slice(0, 3).map(c => ({ id: c.id, name: c.fullName })));
     
     // Ensure we have candidates to work with
     if (allCandidates.length === 0) {
@@ -54,11 +51,9 @@ export const screeningService = {
       const candidate = allCandidates[targetIndex];
       
       if (!candidate || !candidate.id) {
-        console.error(`⚠️ No candidate found at index ${index}, candidates length:`, allCandidates.length);
+        console.error(`No candidate found at index ${index}, candidates length: ${allCandidates.length}`);
         throw new Error(`Invalid candidate at index ${index}`);
       }
-      
-      console.log(`🔗 Mapping result ${index} to candidate:`, candidate.fullName, 'ID:', candidate.id);
       
       const strengths = Array.isArray(r.strengths) ? r.strengths : [];
       const gaps = Array.isArray(r.gaps) ? r.gaps : [];
@@ -75,23 +70,16 @@ export const screeningService = {
       };
     });
 
-    console.log('📝 About to insert:', toInsert.length, 'results');
-    console.log('📝 First insert values:', JSON.stringify(toInsert[0], null, 2));
-
     const saved = await db
       .insert(screeningResults)
       .values(toInsert)
       .returning();
-
-    console.log('✅ Inserted:', saved.length, 'screening results');
 
     // 6. Update job status to "screening" after running screening
     await db
       .update(jobs)
       .set({ status: "screening" })
       .where(eq(jobs.id, jobId));
-
-    console.log('✅ Job status updated to: screening');
 
     return {
       jobId,

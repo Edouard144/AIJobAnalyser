@@ -72,8 +72,8 @@ export default function Reports() {
           }).length;
           monthly.push({
             m: monthName,
-            screenings: screeningsThisMonth || Math.floor(Math.random() * 5),
-            hires: Math.floor((screeningsThisMonth || 3) * 0.15),
+            screenings: screeningsThisMonth || 0,
+            hires: Math.floor((screeningsThisMonth || 0) * 0.15),
           });
         }
         setMonthlyData(monthly);

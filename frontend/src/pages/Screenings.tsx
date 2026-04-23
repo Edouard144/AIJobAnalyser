@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Sparkles, Trophy, Download, Zap, Loader2, Brain } from 'lucide-react';
+import { Sparkles, Trophy, Download, Zap, Loader2, Brain, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { jobsApi, screeningApi } from '@/lib/api';
+import { jobsApi, screeningApi, activityApi } from '@/lib/api';
 import { ScoreRing } from '@/components/ScoreRing';
 import { GradientAvatar } from '@/components/Avatar';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const STAGES = [
   'Parsing resumes…',
@@ -60,8 +61,18 @@ export default function Screenings() {
             const resultsData = data.results || data || [];
             setResults(resultsData);
             setStep('results');
+            // Fire confetti safely with dynamic import
+            if (typeof window !== 'undefined') {
+              try {
+                const confetti = (await import('canvas-confetti')).default;
+                confetti({ particleCount: 120, spread: 80, origin: { y: 0.4 }, colors: ['#8AFF6E', '#00FFC8', '#39D98A'] });
+              } catch (e) {
+                console.warn('Confetti unavailable:', e);
+              }
+            }
+            activityApi.create('screening_completed', selectedJob, `Completed screening for ${resultsData.length} candidate${resultsData.length !== 1 ? 's' : ''}`).catch(() => {});
           } catch (err: any) {
-            console.error('Screening failed:', err);
+            toast.error(err.message);
             setStep('select');
           }
         }, 400);
@@ -149,7 +160,7 @@ export default function Screenings() {
                 return (
                   <div
                     key={c.id || i}
-                    className={cn('glass rounded-2xl p-6 text-center relative overflow-hidden',
+                    className={cn('glass rounded-2xl p-6 text-center animate-fade-in-up relative overflow-hidden',
                       i === 0 && 'md:order-2 md:-mt-4 border-primary/40 glow-primary',
                       i === 1 && 'md:order-1', i === 2 && 'md:order-3')}
                     style={{ animationDelay: `${i * 120}ms` }}
@@ -157,9 +168,10 @@ export default function Screenings() {
                     {i === 0 && <div className="absolute top-3 right-3"><Trophy className="h-5 w-5 text-warning" /></div>}
                     <div className={cn('inline-flex items-center justify-center h-7 w-7 rounded-full text-xs font-bold mb-3',
                       i === 0 ? 'bg-gradient-primary text-primary-foreground' : 'bg-muted')}>#{i + 1}</div>
-                    <div className="font-semibold mt-2">{name}</div>
+                    <GradientAvatar name={name} size={80} />
+                    <p className="font-semibold mt-2">{name}</p>
                     <p className="text-xs text-muted-foreground mb-4">{cand.experienceYears || 0} years exp</p>
-                    <div className="text-2xl font-bold">{(parseFloat(c.score || 0)).toFixed(0)}%</div>
+                    <ScoreRing score={parseFloat(c.score || 0)} size={80} />
                   </div>
                 );
               })}
@@ -171,19 +183,19 @@ export default function Screenings() {
                 const cand = c.candidate || c;
                 const name = cand.fullName || `${cand.firstName || ''} ${cand.lastName || ''}`;
                 return (
-                  <div key={c.id || i} className="glass rounded-xl p-4 flex items-center gap-4">
+                  <div key={c.id || i} className="glass rounded-xl p-4 flex items-center gap-4 animate-fade-in-up" style={{ animationDelay: `${(i + 3) * 60}ms` }}>
                     <span className="font-display font-bold text-muted-foreground w-8">#{i + 4}</span>
-                    <div className="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-sm">
-                      {name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase() || '?'}
-                    </div>
+                    <GradientAvatar name={name} size={40} />
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold truncate">{name}</p>
                       <div className="flex flex-wrap gap-1 mt-1">
-                        {(cand.skills || []).slice(0, 3).map((s: string) => (
-                          <span key={s} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{s}</span>
-                        ))}
+                        {(cand.skills || []).slice(0, 3).map((s: any, i: number) => {
+                          const name = typeof s === 'string' ? s : (s.name || '');
+                          return <span key={name || i} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{name}</span>;
+                        })}
                       </div>
                     </div>
+                    <ScoreRing score={parseFloat(c.score || 0)} size={44} />
                     <div className="text-right">
                       <span className={cn('text-[10px] font-semibold px-2 py-1 rounded-full',
                         c.recommendation === 'SHORTLIST' && 'bg-success/10 text-success',
@@ -214,8 +226,6 @@ export default function Screenings() {
       </div>
     );
   }
-
-  console.log('Screenings render: jobs=', jobs.length, ' step=', step, ' loading=', loading);
 
   return (
     <div className="space-y-8 max-w-2xl mx-auto">

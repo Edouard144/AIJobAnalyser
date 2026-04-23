@@ -48,16 +48,14 @@ const sendOTPEmail = async (email: string, otp: string) => {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log(`📧 OTP sent to ${email}`);
   } catch (error) {
     console.error('Failed to send OTP email:', error);
-    console.log(`📧 OTP for ${email}: ${otp}`);
   }
 };
 
 export const authService = {
 
-  // ── Register ──────────────────────────────────────────────────────────────
+// ── Register ──────────────────────────────────────────────────────────────
   async register(input: RegisterInput) {
     // 1. Check if email already exists
     const existing = await db
@@ -73,8 +71,11 @@ export const authService = {
     // 2. Hash password — never store plain text
     const hashedPassword = await bcrypt.hash(input.password, 12);
 
-    // 3. Insert new user
-    // Combine names for backward compatibility with schema
+    // 3. Generate OTP for email verification
+    const otp = generateOTP();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    // 4. Insert new user with OTP
     const fullName = input.fullName || `${input.firstName || ''} ${input.lastName || ''}`.trim() || undefined;
 
     const [newUser] = await db
@@ -83,10 +84,15 @@ export const authService = {
         email:    input.email,
         password: hashedPassword,
         fullName,
+        otpCode: otp,
+        otpExpiresAt: expiresAt,
       })
       .returning({ id: users.id, email: users.email, fullName: users.fullName });
 
-    // 4. Return tokens immediately — user is logged in after register
+    // 5. Send OTP email immediately
+    await sendOTPEmail(input.email, otp);
+
+    // 6. Return tokens — user will verify email with OTP
     return {
       user:         newUser,
       accessToken:  signAccessToken(newUser.id),

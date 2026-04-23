@@ -19,7 +19,7 @@ type Candidate = {
   fullName?: string;
   email?: string;
   phone?: string;
-  skills?: string[];
+  skills?: Array<{ name: string; level?: string; yearsOfExperience?: number } | string>;
   experienceYears?: number;
   educationLevel?: string;
   currentPosition?: string;
@@ -209,6 +209,12 @@ export default function Candidates() {
                     (c.matchScore || 0) >= 60 && (c.matchScore || 0) < 85 && 'bg-warning/10 text-warning',
                     (c.matchScore || 0) < 60 && 'bg-destructive/10 text-destructive',
                   )}>{c.status || 'New'}</span>
+                  <div className="mt-1.5 flex flex-wrap gap-1 justify-end">
+                    {(c.skills || []).slice(0, 2).map((s: any, i: number) => {
+                      const name = typeof s === 'string' ? s : (s.name || '');
+                      return name ? <span key={name || i} className="text-[9px] px-1.5 py-0.5 rounded bg-muted">{name}</span> : null;
+                    })}
+                  </div>
                 </div>
               </div>
             </button>
@@ -285,9 +291,10 @@ export default function Candidates() {
               <div>
                 <p className="text-sm font-medium mb-2">Skills</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {(selected.skills || []).map((s: string) => (
-                    <span key={s} className="text-xs px-2 py-1 rounded-full bg-muted">{s}</span>
-                  ))}
+                  {(selected.skills || []).map((s, i) => {
+                    const name = typeof s === 'string' ? s : (s.name || '');
+                    return <span key={name || i} className="text-xs px-2 py-1 rounded-full bg-muted">{name}</span>;
+                  })}
                 </div>
               </div>
             </div>
