@@ -85,7 +85,7 @@ Instructions:
 AI:`;
     
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
       const result = await model.generateContent(fullPrompt);
       const answer = result.response.candidates?.[0]?.content?.parts?.[0]?.text || "I couldn't generate a response.";
       
@@ -141,7 +141,7 @@ If any field is not mentioned, use null for that field.
 Return ONLY the JSON, no other text.`;
     
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
       const result = await model.generateContent(prompt);
       const text = result.response.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
       

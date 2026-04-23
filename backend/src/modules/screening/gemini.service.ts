@@ -6,7 +6,7 @@ const pdf = require("pdf-parse");
 const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
 const groq = new Groq({ apiKey: env.GROQ_API_KEY });
 
-const DEFAULT_MODEL = "gemini-2.0-flash";
+const DEFAULT_MODEL = "gemini-2.5-flash";
 
 export interface AIResult {
   candidateId: string;
