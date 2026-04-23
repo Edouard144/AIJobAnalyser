@@ -14,4 +14,8 @@ export const screeningResults = pgTable("screening_results", {
   recommendation: text("recommendation"),           // AI natural language verdict
   rawAiOutput:    jsonb("raw_ai_output"),           // full Gemini response (for debugging)
   screenedAt:     timestamp("screened_at").defaultNow(),
-});
+}, (table) => ({
+  idxJobId: { columns: [table.jobId] },
+  idxCandidateId: { columns: [table.candidateId] },
+  idxJobRank: { columns: [table.jobId, table.rank] },
+}));

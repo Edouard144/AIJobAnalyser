@@ -13,4 +13,6 @@ export const jobs = pgTable("jobs", {
   location:        varchar("location", { length: 255 }),
   status:          varchar("status", { length: 50 }).default("open"), // open | screening | closed
   createdAt:       timestamp("created_at").defaultNow(),
-});
+}, (table) => ({
+  idxRecruiter: { columns: [table.recruiterId] },
+}));

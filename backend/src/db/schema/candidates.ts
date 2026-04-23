@@ -35,7 +35,9 @@ export const candidates = pgTable("candidates", {
   source:          varchar("source", { length: 50 }).default("umurava"), 
   status:          varchar("status", { length: 50 }).default("new"), // new | reviewed | shortlist | reject
   createdAt:       timestamp("created_at").defaultNow(),
-});
+}, (table) => ({
+  idxJobId: { columns: [table.jobId] },
+}));
 
 export type Candidate = typeof candidates.$inferSelect;
 export type NewCandidate = typeof candidates.$inferInsert;

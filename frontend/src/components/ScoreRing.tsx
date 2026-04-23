@@ -1,6 +1,7 @@
+import { memo } from 'react';
 import { cn } from '@/lib/utils';
 
-export const ScoreRing = ({ score, size = 64, stroke = 6, animated = true }: {
+export const ScoreRing = memo(({ score, size = 64, stroke = 6, animated = true }: {
   score: number; size?: number; stroke?: number; animated?: boolean;
 }) => {
   const radius = (size - stroke) / 2;
@@ -24,4 +25,4 @@ export const ScoreRing = ({ score, size = 64, stroke = 6, animated = true }: {
       </div>
     </div>
   );
-};
+});

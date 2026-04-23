@@ -217,13 +217,20 @@ export default function Candidates() {
                 </div>
               </div>
               <div className="flex items-center justify-between mt-2">
-                <ScoreRing score={c.matchScore || 0} size={48} />
+                {c.matchScore != null && c.matchScore > 0 ? (
+                  <ScoreRing score={c.matchScore || 0} size={48} />
+                ) : (
+                  <div className="h-12 w-12 flex items-center justify-center rounded-full bg-muted">
+                    <span className="text-xs text-muted-foreground">—</span>
+                  </div>
+                )}
                 <div className="text-right">
                   <span className={cn('text-[10px] font-semibold px-2 py-1 rounded-full',
-                    (c.matchScore || 0) >= 85 && 'bg-success/10 text-success',
-                    (c.matchScore || 0) >= 60 && (c.matchScore || 0) < 85 && 'bg-warning/10 text-warning',
-                    (c.matchScore || 0) < 60 && 'bg-destructive/10 text-destructive',
-                  )}>{c.status || 'New'}</span>
+                    c.matchScore != null && c.matchScore > 0 && c.matchScore >= 85 && 'bg-success/10 text-success',
+                    c.matchScore != null && c.matchScore > 0 && c.matchScore >= 60 && c.matchScore < 85 && 'bg-warning/10 text-warning',
+                    c.matchScore != null && c.matchScore > 0 && c.matchScore < 60 && 'bg-destructive/10 text-destructive',
+                    (c.matchScore == null || c.matchScore === 0) && 'bg-muted text-muted-foreground',
+                  )}>{c.matchScore != null && c.matchScore > 0 ? (c.status || 'Screened') : 'Not screened'}</span>
                   <div className="mt-1.5 flex flex-wrap gap-1 justify-end">
                     {(c.skills || []).slice(0, 2).map((s: any, i: number) => {
                       const name = typeof s === 'string' ? s : (s.name || '');
@@ -253,8 +260,8 @@ export default function Candidates() {
                   <td className="p-3 text-sm">{c.fullName || `${c.firstName || ''} ${c.lastName || ''}`}</td>
                   <td className="p-3 text-sm text-muted-foreground">{c.email}</td>
                   <td className="p-3 text-sm">{c.currentPosition || '-'}</td>
-                  <td className="p-3 text-sm"><ScoreRing score={c.matchScore || 0} size={32} /></td>
-                  <td className="p-3 text-sm"><span className={cn('text-[10px] px-2 py-1 rounded-full', (c.matchScore || 0) >= 85 && 'bg-success/10 text-success')}>{c.status || 'New'}</span></td>
+                  <td className="p-3 text-sm">{c.matchScore != null && c.matchScore > 0 ? <ScoreRing score={c.matchScore} size={32} /> : <span className="text-muted-foreground">—</span>}</td>
+                  <td className="p-3 text-sm"><span className={cn('text-[10px] px-2 py-1 rounded-full', c.matchScore != null && c.matchScore > 0 && c.matchScore >= 85 && 'bg-success/10 text-success', (c.matchScore == null || c.matchScore === 0) && 'bg-muted text-muted-foreground')}>{c.matchScore != null && c.matchScore > 0 ? (c.status || 'Screened') : 'Not screened'}</span></td>
                 </tr>
               ))}
             </tbody>
@@ -275,7 +282,13 @@ export default function Candidates() {
                 </div>
               </div>
               <div className="flex gap-4">
-                <ScoreRing score={selected.matchScore || 0} size={80} />
+                {selected.matchScore != null && selected.matchScore > 0 ? (
+                  <ScoreRing score={selected.matchScore} size={80} />
+                ) : (
+                  <div className="h-20 w-20 flex items-center justify-center rounded-full bg-muted">
+                    <span className="text-muted-foreground">Not screened</span>
+                  </div>
+                )}
                 <div className="flex-1">
                   <p className="text-sm font-medium mb-2">Experience</p>
                   <p className="text-sm text-muted-foreground">{selected.experienceYears || 0} years</p>

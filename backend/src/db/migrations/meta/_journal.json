@@ -15,6 +15,13 @@
       "when": 1776664701481,
       "tag": "0001_lazy_serpent_society",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776957736514,
+      "tag": "0002_ordinary_human_cannonball",
+      "breakpoints": true
     }
   ]
 }

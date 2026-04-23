@@ -39,18 +39,21 @@ export const jobsService = {
 
     const total = Number(countResult?.count) || 0;
 
-    // Get all jobs first
-    const allJobs = await db
+    // Get paginated jobs directly (single query with limit/offset)
+    const paginatedJobs = await db
       .select()
       .from(jobs)
       .where(eq(jobs.recruiterId, recruiterId))
-      .orderBy(desc(jobs.createdAt));
+      .orderBy(desc(jobs.createdAt))
+      .limit(limit)
+      .offset(offset);
 
-    // Get candidate counts for all jobs
-    const jobIds = allJobs.map(j => j.id);
+    // Get candidate counts for paginated jobs only (2nd query, efficient)
+    const jobIds = paginatedJobs.map(j => j.id);
     let candidateCounts: Record<string, number> = {};
     
     if (jobIds.length > 0) {
+      // Use single query with GROUP BY for all jobs at once
       const counts = await db
         .select({ jobId: candidates.jobId, count: count() })
         .from(candidates)
@@ -64,7 +67,6 @@ export const jobsService = {
     }
 
     // Map jobs with their counts
-    const paginatedJobs = allJobs.slice(offset, offset + limit);
     const data = paginatedJobs.map(job => ({
       ...job,
       _count: { candidates: candidateCounts[job.id as string] || 0 }

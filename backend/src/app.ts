@@ -142,12 +142,14 @@ import notificationsRoutes from "./modules/notifications/notifications.routes";
 import aiRoutes from "./modules/ai/ai.chat.routes";
 import teamRoutes from "./modules/team/team.routes";
 import billingRoutes from "./modules/billing/billing.routes";
+import insightsRoutes from "./modules/insights/insights.routes";
 
 app.use("/api/activity", activityRoutes);
 app.use("/api/notifications", notificationsRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/team", teamRoutes);
 app.use("/api/billing", billingRoutes);
+app.use("/api/insights", insightsRoutes);
 
 app.use(errorMiddleware);
 

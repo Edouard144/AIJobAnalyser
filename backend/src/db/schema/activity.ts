@@ -11,7 +11,10 @@ export const activityLogs = pgTable("activity_logs", {
   description: varchar("description", { length: 500 }), // human-readable description
   details: jsonb("details"), // extra information
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => ({
+  idxUserId: { columns: [table.userId] },
+  idxUserCreated: { columns: [table.userId, table.createdAt] },
+}));
 
 export type ActivityLog = typeof activityLogs.$inferSelect;
 export type NewActivityLog = typeof activityLogs.$inferInsert;

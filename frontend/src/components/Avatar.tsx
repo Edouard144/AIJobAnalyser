@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { cn } from '@/lib/utils';
 import { avatarGradient, initials } from '@/lib/avatarColor';
 
@@ -11,12 +12,7 @@ const sizeMap: Record<'xs' | 'sm' | 'md' | 'lg' | 'xl', string> = {
   xl: 'h-16 w-16 text-lg',
 };
 
-function getSizeClass(size: AvatarSize) {
-  if (typeof size === 'number') return `w-[${size}px] h-[${size}px]`;
-  return sizeMap[size];
-}
-
-export const GradientAvatar = ({
+export const GradientAvatar = memo(({
   name,
   size = 'md',
   className,
@@ -40,4 +36,4 @@ export const GradientAvatar = ({
       {initials(name)}
     </div>
   );
-};
+});
