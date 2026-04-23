@@ -29,31 +29,34 @@ export const candidatesController = {
     }
   },
 
-// ── Scenario 2: POST /api/jobs/:jobId/candidates/upload-csv ───────────────
+// ── Scenario 2: POST /api/jobs/:jobId/candidates/upload ───────────────
   async uploadCSV(req: Request, res: Response) {
     try {
-      console.log('[CSV Upload] Endpoint hit');
-      console.log('[CSV Upload] jobId:', req.params.jobId);
-      console.log('[CSV Upload] req.file:', req.file ? { name: req.file.originalname, size: req.file.size } : 'NONE');
+      console.log('[Upload] Endpoint hit');
+      console.log('[Upload] jobId:', req.params.jobId);
+      console.log('[Upload] req.file:', req.file ? { name: req.file.originalname, size: req.file.size, mimetype: req.file.mimetype } : 'NONE');
       
       const jobId = req.params.jobId as string;
 
       const job = await candidatesService.verifyJobOwnership(jobId, req.user!.userId);
-      console.log('[CSV Upload] Job ownership verified:', job ? 'YES' : 'NO');
+      console.log('[Upload] Job ownership verified:', job ? 'YES' : 'NO');
       if (!job) { sendError(res, "Job not found", 404); return; }
 
       // Multer puts the file in req.file
       if (!req.file) { 
-        console.log('[CSV Upload] No file in request');
-        sendError(res, "No CSV file uploaded", 400); return; 
+        console.log('[Upload] No file in request');
+        sendError(res, "No file uploaded", 400); return; 
       }
 
-      console.log('[CSV Upload] Parsing CSV...');
-      const result = await candidatesService.insertFromCSV(jobId, req.file.buffer);
-      console.log('[CSV Upload] Success, inserted:', result.length);
-      sendSuccess(res, { inserted: result.length, candidates: result }, "CSV imported", 201);
+      const fileExt = req.file.originalname.split('.').pop()?.toLowerCase();
+      const isExcel = fileExt === 'xlsx' || fileExt === 'xls';
+      
+      console.log('[Upload] Parsing file (CSV:', !isExcel, '/ Excel:', isExcel, ')...');
+      const result = await candidatesService.insertFromFile(jobId, req.file.buffer, isExcel);
+      console.log('[Upload] Success, inserted:', result.length);
+      sendSuccess(res, { inserted: result.length, candidates: result }, "Candidates imported", 201);
     } catch (err: any) {
-      console.error('[CSV Upload] Error:', err);
+      console.error('[Upload] Error:', err);
       sendError(res, err.message, 400);
     }
   },

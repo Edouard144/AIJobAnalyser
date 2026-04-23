@@ -1,6 +1,7 @@
 // candidates service
 import { eq, and } from "drizzle-orm";
 import { parse } from "csv-parse/sync";
+import * as XLSX from "xlsx";
 import { db } from "../../config/db";
 import { candidates } from "../../db/schema/candidates";
 import { jobs } from "../../db/schema/jobs";
@@ -160,6 +161,82 @@ export const candidatesService = {
       .where(eq(candidates.id, candidateId))
       .returning();
     return updated;
+  },
+
+  // ── Unified insert: handles CSV and Excel files ─────────────────────
+  async insertFromFile(jobId: string, fileBuffer: Buffer, isExcel: boolean) {
+    if (isExcel) {
+      console.log('[Excel] Parsing Excel file...');
+      const workbook = XLSX.read(fileBuffer, { type: "buffer", cellDates: true });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(sheet) as Record<string, any>[];
+      console.log('[Excel] Rows parsed:', rows.length);
+      return this.insertFromExcelRows(jobId, rows);
+    } else {
+      return this.insertFromCSV(jobId, fileBuffer);
+    }
+  },
+
+  // ── Parse Excel rows ────────────────────────────────────────────────
+  async insertFromExcelRows(jobId: string, rows: Record<string, any>[]) {
+    if (rows.length === 0) throw new Error("Excel file is empty");
+
+    // Helper: parse array fields from Excel (may be arrays or strings)
+    const parseArrayField = (value: any): string[] => {
+      if (!value) return [];
+      if (Array.isArray(value)) return value.map(String).filter(Boolean);
+      if (typeof value === 'string') {
+        if (value.includes('|')) return value.split('|').map(s => s.trim()).filter(s => s);
+        if (value.includes(',')) return value.split(',').map(s => s.trim()).filter(s => s);
+        return [value.trim()];
+      }
+      return [String(value)];
+    };
+
+    const values = rows.map((row) => {
+      // Normalize keys to lowercase for case-insensitive matching
+      const normalize = (obj: Record<string, any>) => {
+        const normalized: Record<string, any> = {};
+        for (const [key, val] of Object.entries(obj)) {
+          normalized[key.toLowerCase().replace(/[\s_]+/g, '')] = val;
+        }
+        return normalized;
+      };
+      const r = normalize(row);
+
+      // Handle name fields
+      const firstName = r.firstname || r['firstname'] || r.first_name || r['first_name'] || r.name?.split(' ')[0] || '';
+      const lastName = r.lastname || r['lastname'] || r.last_name || r['last_name'] || r.name?.split(' ').slice(1).join(' ') || '';
+      const fullName = `${firstName} ${lastName}`.trim() || 'Unknown';
+
+      // Handle other fields
+      const skillNames = parseArrayField(r.skills || r.skill || r.skillset);
+      const expYears = Number(r.experienceyears || r.experience_years || r.yearsofexperience || r.years || 0);
+
+      return {
+        jobId,
+        firstName: firstName || 'Unknown',
+        lastName: lastName || 'Candidate',
+        fullName: fullName,
+        email: r.email || r.emailaddress || r.email_address || null,
+        phone: r.phone || r.telephone || r.mobile || null,
+        headline: r.headline || r.title || r.currentposition || 'Talent',
+        bio: r.bio || r.summary || null,
+        location: r.location || r.city || 'Remote',
+        skills: skillNames.map(name => ({ name, level: 'Intermediate', yearsOfExperience: 1 })),
+        languages: parseArrayField(r.languages || r.language).map(name => ({ name, proficiency: 'Fluent' })),
+        experienceYears: expYears,
+        educationLevel: r.education || r.educationlevel || r.degree || null,
+        currentPosition: r.currentposition || r.position || r.headline || null,
+        source: 'external' as const,
+        profileData: row,
+      };
+    });
+
+    const inserted = await db.insert(candidates).values(values).returning();
+    console.log('[Excel] Inserted:', inserted.length);
+    return inserted;
   },
 
   // ── Scenario 2: Parse CSV buffer and insert candidates ────────────────────

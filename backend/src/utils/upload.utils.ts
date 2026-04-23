@@ -6,13 +6,13 @@ import path from "path";
 const storage = multer.memoryStorage();
 
 const fileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  const allowed = [".csv", ".pdf"];
+  const allowed = [".csv", ".xlsx", ".xls"];
   const ext = path.extname(file.originalname).toLowerCase();
 
   if (allowed.includes(ext)) {
     cb(null, true);  // accept
   } else {
-    cb(new Error("Only CSV and PDF files are allowed"));
+    cb(new Error("Only CSV and Excel files (.csv, .xlsx, .xls) are allowed"));
   }
 };
 

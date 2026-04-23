@@ -267,9 +267,9 @@ export default function JobDetail() {
                   <div className="mx-auto h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
                     <Upload className="h-6 w-6 text-primary" />
                   </div>
-                  <p className="font-semibold mb-1">Drop CSV here</p>
-                  <p className="text-xs text-muted-foreground">CSV file with candidate data</p>
-                  <input type="file" accept=".csv" onChange={handleFileUpload} className="hidden" id="job-csv-upload" />
+                  <p className="font-semibold mb-1">Drop CSV or Excel here</p>
+                  <p className="text-xs text-muted-foreground">CSV or Excel file with candidate data</p>
+                  <input type="file" accept=".csv,.xlsx,.xls" onChange={handleFileUpload} className="hidden" id="job-csv-upload" />
                   <label htmlFor="job-csv-upload">
                     <Button variant="outline" size="sm" className="mt-4 cursor-pointer" asChild>
                       <span>{uploading ? 'Uploading...' : 'or browse files'}</span>
