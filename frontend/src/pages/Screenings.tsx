@@ -1,15 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Sparkles, ArrowRight, Trophy, Download, Zap, Brain, Loader2 } from 'lucide-react';
+import { Sparkles, Trophy, Download, Zap, Loader2, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { jobsApi, screeningApi, activityApi } from '@/lib/api';
+import { jobsApi, screeningApi } from '@/lib/api';
 import { ScoreRing } from '@/components/ScoreRing';
 import { GradientAvatar } from '@/components/Avatar';
 import { cn } from '@/lib/utils';
-import confetti from 'canvas-confetti';
-import { toast } from 'sonner';
-import { Link } from 'react-router-dom';
 
 const STAGES = [
   'Parsing resumes…',
@@ -37,10 +34,14 @@ export default function Screenings() {
         setJobs(jobsArray);
         if (jobsArray.length > 0) setSelectedJob(jobsArray[0].id);
       })
-      .catch(console.error)
+      .catch(err => {
+        console.error('Failed to load jobs:', err);
+        setJobs([]);
+      })
       .finally(() => setLoading(false));
   }, []);
 
+  // Simplified scanning effect without confetti/activity/toast
   useEffect(() => {
     if (step !== 'scanning') return;
     setProgress(0); setStage(0);
@@ -59,10 +60,8 @@ export default function Screenings() {
             const resultsData = data.results || data || [];
             setResults(resultsData);
             setStep('results');
-            confetti({ particleCount: 120, spread: 80, origin: { y: 0.4 }, colors: ['#8AFF6E', '#00FFC8', '#39D98A'] });
-            activityApi.create('screening_completed', selectedJob, `Completed screening for ${resultsData.length} candidate${resultsData.length !== 1 ? 's' : ''}`).catch(() => {});
           } catch (err: any) {
-            toast.error(err.message);
+            console.error('Screening failed:', err);
             setStep('select');
           }
         }, 400);
@@ -75,10 +74,10 @@ export default function Screenings() {
     if (!selectedJob) return;
     try {
       const data = await screeningApi.getResults(selectedJob);
-      setResults(data as any[]);
+      setResults(Array.isArray(data) ? data : []);
       setStep('results');
     } catch (err: any) {
-      toast.error('No results. Run a new screening.');
+      console.error('Failed to get results:', err);
     }
   };
 
@@ -150,7 +149,7 @@ export default function Screenings() {
                 return (
                   <div
                     key={c.id || i}
-                    className={cn('glass rounded-2xl p-6 text-center animate-fade-in-up relative overflow-hidden',
+                    className={cn('glass rounded-2xl p-6 text-center relative overflow-hidden',
                       i === 0 && 'md:order-2 md:-mt-4 border-primary/40 glow-primary',
                       i === 1 && 'md:order-1', i === 2 && 'md:order-3')}
                     style={{ animationDelay: `${i * 120}ms` }}
@@ -158,10 +157,9 @@ export default function Screenings() {
                     {i === 0 && <div className="absolute top-3 right-3"><Trophy className="h-5 w-5 text-warning" /></div>}
                     <div className={cn('inline-flex items-center justify-center h-7 w-7 rounded-full text-xs font-bold mb-3',
                       i === 0 ? 'bg-gradient-primary text-primary-foreground' : 'bg-muted')}>#{i + 1}</div>
-                    <GradientAvatar name={name} size={80} />
-                    <p className="font-semibold mt-2">{name}</p>
+                    <div className="font-semibold mt-2">{name}</div>
                     <p className="text-xs text-muted-foreground mb-4">{cand.experienceYears || 0} years exp</p>
-                    <ScoreRing score={parseFloat(c.score || 0)} size={80} />
+                    <div className="text-2xl font-bold">{(parseFloat(c.score || 0)).toFixed(0)}%</div>
                   </div>
                 );
               })}
@@ -173,9 +171,11 @@ export default function Screenings() {
                 const cand = c.candidate || c;
                 const name = cand.fullName || `${cand.firstName || ''} ${cand.lastName || ''}`;
                 return (
-                  <div key={c.id || i} className="glass rounded-xl p-4 flex items-center gap-4 animate-fade-in-up" style={{ animationDelay: `${(i + 3) * 60}ms` }}>
+                  <div key={c.id || i} className="glass rounded-xl p-4 flex items-center gap-4">
                     <span className="font-display font-bold text-muted-foreground w-8">#{i + 4}</span>
-                    <GradientAvatar name={name} size={40} />
+                    <div className="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-sm">
+                      {name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase() || '?'}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold truncate">{name}</p>
                       <div className="flex flex-wrap gap-1 mt-1">
@@ -184,7 +184,6 @@ export default function Screenings() {
                         ))}
                       </div>
                     </div>
-                    <ScoreRing score={parseFloat(c.score || 0)} size={44} />
                     <div className="text-right">
                       <span className={cn('text-[10px] font-semibold px-2 py-1 rounded-full',
                         c.recommendation === 'SHORTLIST' && 'bg-success/10 text-success',
@@ -204,6 +203,19 @@ export default function Screenings() {
 
   // Select job step
   const jobOptions = jobs.map((j: any) => ({ id: j.id, title: j.title, candidates: j._count?.candidates || 0 }));
+
+  if (jobs.length === 0 && !loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <p className="text-muted-foreground mb-2">No jobs found. Create a job first.</p>
+          <Button onClick={() => window.location.href = '/jobs'}>Go to Jobs</Button>
+        </div>
+      </div>
+    );
+  }
+
+  console.log('Screenings render: jobs=', jobs.length, ' step=', step, ' loading=', loading);
 
   return (
     <div className="space-y-8 max-w-2xl mx-auto">

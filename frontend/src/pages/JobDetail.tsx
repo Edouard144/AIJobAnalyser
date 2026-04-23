@@ -24,7 +24,7 @@ export default function JobDetail() {
         setJob(jobData);
         
         const cands: any = await jobsApi.getCandidates(id);
-        const candsArray = cands?.candidates || cands || [];
+        const candsArray = Array.isArray(cands) ? cands : (cands?.data || []);
         
         // Get screening results to merge scores
         try {
@@ -33,7 +33,7 @@ export default function JobDetail() {
             const result = results.find((r: any) => r.candidate?.id === c.id);
             return {
               ...c,
-              matchScore: result?.score ? parseFloat(result.score) : 0,
+              matchScore: result?.score ? parseFloat(result.score) : (c.matchScore || 0),
             };
           });
           setCandidates(merged.sort((a: any, b: any) => b.matchScore - a.matchScore));
