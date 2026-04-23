@@ -57,7 +57,7 @@ export default function Jobs() {
     try {
       const created: any = await jobsApi.create(jobData);
       const jobId = created?.id || (created?.data as any)?.id;
-      activityApi.create('job_created', jobId || '', { title: formData.title, skills }).catch(() => {});
+      activityApi.create('job_created', jobId || '', `Created job "${formData.title}" with ${skills.length} skills`).catch(() => {});
       toast.success('Job posted!');
       
       const updated: any = await jobsApi.getAll();

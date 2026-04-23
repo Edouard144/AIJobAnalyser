@@ -32,9 +32,10 @@ export default function Screenings() {
 
   useEffect(() => {
     jobsApi.getAll()
-      .then((j: any) => {
-        setJobs(j);
-        if (j.length > 0) setSelectedJob(j[0].id);
+      .then((res: any) => {
+        const jobsArray = Array.isArray(res) ? res : (res?.data || []);
+        setJobs(jobsArray);
+        if (jobsArray.length > 0) setSelectedJob(jobsArray[0].id);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -59,7 +60,7 @@ export default function Screenings() {
             setResults(resultsData);
             setStep('results');
             confetti({ particleCount: 120, spread: 80, origin: { y: 0.4 }, colors: ['#8AFF6E', '#00FFC8', '#39D98A'] });
-            activityApi.create('screening_completed', selectedJob, { candidatesCount: resultsData.length }).catch(() => {});
+            activityApi.create('screening_completed', selectedJob, `Completed screening for ${resultsData.length} candidate${resultsData.length !== 1 ? 's' : ''}`).catch(() => {});
           } catch (err: any) {
             toast.error(err.message);
             setStep('select');

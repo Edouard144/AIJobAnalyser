@@ -50,8 +50,8 @@ export const authApi = {
   sendOTP: (email: string) => 
     request('/auth/send-otp', { method: 'POST', body: JSON.stringify({ email }) }),
   
-  verifyOTP: (email: string, code: string) =>
-    request('/auth/verify-otp', { method: 'POST', body: JSON.stringify({ email, code }) }),
+  verifyOTP: (email: string, otp: string) =>
+    request('/auth/verify-otp', { method: 'POST', body: JSON.stringify({ email, otp }) }),
   
   updateProfile: (data: { language?: string; theme?: string; onboardingCompleted?: boolean }) =>
     request('/auth/profile', { method: 'PATCH', body: JSON.stringify(data) }),
@@ -108,6 +108,12 @@ export const jobsApi = {
   deleteCandidate: (jobId: string, candidateId: string) => 
     request(`/jobs/${jobId}/candidates/${candidateId}`, { method: 'DELETE' }),
   
+  updateCandidateStatus: (jobId: string, candidateId: string, status: string) =>
+    request(`/jobs/${jobId}/candidates/${candidateId}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  
+  updateCandidate: (jobId: string, candidateId: string, data: any) =>
+    request(`/jobs/${jobId}/candidates/${candidateId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
   uploadCandidates: (jobId: string, file: File) => {
     const formData = new FormData();
     formData.append('file', file);
@@ -151,6 +157,9 @@ export const teamApi = {
 // Notifications
 export const notificationsApi = {
   getAll: () => request('/notifications'),
+  
+  create: (message: string, type?: string, title?: string) =>
+    request('/notifications', { method: 'POST', body: JSON.stringify({ message, type, title }) }),
   
   markAsRead: (id: string) =>
     request(`/notifications/${id}/read`, { method: 'POST' }),

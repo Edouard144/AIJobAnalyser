@@ -38,5 +38,16 @@ export const notificationsController = {
     } catch (err: any) {
       sendError(res, err.message);
     }
-  }
+  },
+
+  async create(req: Request, res: Response) {
+    try {
+      const { message, type, title } = req.body;
+      if (!message) { sendError(res, "Message is required", 400); return; }
+      const notif = await notificationsService.create(req.user!.userId, message, type || 'info', title);
+      sendSuccess(res, notif, "Notification created");
+    } catch (err: any) {
+      sendError(res, err.message);
+    }
+  },
 };

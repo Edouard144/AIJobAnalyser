@@ -6,6 +6,7 @@ import { notificationsController } from "./notifications.controller";
 const router = Router();
 
 router.get("/", requireAuth, notificationsController.get);
+router.post("/", requireAuth, notificationsController.create);
 router.patch("/:id/read", requireAuth, notificationsController.markRead);
 router.patch("/read-all", requireAuth, notificationsController.markAllRead);
 

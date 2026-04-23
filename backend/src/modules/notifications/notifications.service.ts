@@ -6,10 +6,10 @@ import { notifications } from "../../db/schema/notifications";
 export const notificationsService = {
   
   // Create notification
-  async create(userId: string, message: string, type: string) {
+  async create(userId: string, message: string, type: string, title?: string) {
     const [notif] = await db
       .insert(notifications)
-      .values({ userId, message, type })
+      .values({ userId, message, type, title: title || null })
       .returning();
     return notif;
   },

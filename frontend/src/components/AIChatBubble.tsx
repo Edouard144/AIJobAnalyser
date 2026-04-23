@@ -77,7 +77,7 @@ export const AIChatBubble = ({ selectedJobId }: { selectedJobId?: string }) => {
       };
       setMsgs(m => [...m, reply]);
 
-      activityApi.create('ai_chat', activeJobId || 'global', { question: text, response: reply.text }).catch(() => {});
+      activityApi.create('ai_chat', activeJobId || 'global', `Asked AI: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`).catch(() => {});
     } catch (err: any) {
       const errorMsg: Msg = {
         id: Date.now() + 1,

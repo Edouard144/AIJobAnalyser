@@ -54,7 +54,7 @@ export default function Candidates() {
           setSelectedJob(jobsArray[0].id);
           setLoading(true);
           const cands: any = await jobsApi.getCandidates(jobsArray[0].id);
-          setCandidates(cands?.candidates || cands || []);
+          setCandidates(Array.isArray(cands) ? cands : (cands?.data || []));
         } else {
           setCandidates([]);
         }
@@ -88,7 +88,7 @@ export default function Candidates() {
       toast.success('Candidates uploaded!');
       setUploadOpen(false);
       const cands: any = await jobsApi.getCandidates(selectedJob);
-      const uploaded = (cands?.candidates || cands) as Candidate[];
+      const uploaded = Array.isArray(cands) ? cands : (cands?.data || []);
       setCandidates(uploaded);
       activityApi.create('candidates_uploaded', selectedJob, { count: uploaded.length }).catch(() => {});
     } catch (err: any) {

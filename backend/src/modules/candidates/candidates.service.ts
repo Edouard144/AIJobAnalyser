@@ -1,6 +1,6 @@
 // candidates service
 import { eq, and } from "drizzle-orm";
-import { parse } from "csv-parser/sync";
+import { parse } from "csv-parse/sync";
 import { db } from "../../config/db";
 import { candidates } from "../../db/schema/candidates";
 import { jobs } from "../../db/schema/jobs";

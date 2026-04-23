@@ -67,12 +67,12 @@ export default function AIActivity() {
                 </div>
                 <div className="glass rounded-xl p-4 ml-2">
                   <div className="flex items-center justify-between gap-2 mb-1">
-                    <p className="font-semibold text-sm">{e.action || 'Activity'}</p>
+                    <p className="font-semibold text-sm">{e.description || e.action}</p>
                     <span className="text-xs text-muted-foreground shrink-0">
                       {e.createdAt ? new Date(e.createdAt).toLocaleDateString() : 'recently'}
                     </span>
                   </div>
-                  <p className="text-sm text-muted-foreground">{e.description || e.target || e.details || ''}</p>
+                   <p className="text-sm text-muted-foreground">{e.description || e.target || e.details || ''}</p>
                 </div>
               </div>
             );

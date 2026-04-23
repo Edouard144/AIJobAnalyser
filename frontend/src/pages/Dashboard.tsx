@@ -197,9 +197,9 @@ return (
                 <div key={i} className="flex items-start gap-3 p-2 rounded-lg hover:bg-accent/40 transition-colors">
                   <span className="text-xl shrink-0">📋</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm leading-snug">{item.action || item.description}</p>
+                    <p className="text-sm leading-snug">{item.description || item.action}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className={cn('text-[10px] font-semibold px-1.5 py-0.5 rounded', 'bg-primary/10 text-primary')}>{item.type || 'activity'}</span>
+                      <span className={cn('text-[10px] font-semibold px-1.5 py-0.5 rounded', 'bg-primary/10 text-primary')}>{item.action}</span>
                       <span className="text-[10px] text-muted-foreground">{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'recently'}</span>
                     </div>
                   </div>
