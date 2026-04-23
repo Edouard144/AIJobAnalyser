@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Search, Upload, LayoutGrid, List, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { jobsApi, screeningApi } from '@/lib/api';
+import { jobsApi, screeningApi, activityApi } from '@/lib/api';
 import { ScoreRing } from '@/components/ScoreRing';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -88,7 +88,9 @@ export default function Candidates() {
       toast.success('Candidates uploaded!');
       setUploadOpen(false);
       const cands: any = await jobsApi.getCandidates(selectedJob);
-      setCandidates((cands?.candidates || cands) as Candidate[]);
+      const uploaded = (cands?.candidates || cands) as Candidate[];
+      setCandidates(uploaded);
+      activityApi.create('candidates_uploaded', selectedJob, { count: uploaded.length }).catch(() => {});
     } catch (err: any) {
       toast.error(err.message);
     } finally {

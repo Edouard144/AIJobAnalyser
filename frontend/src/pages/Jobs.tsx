@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Plus, MapPin, Users, Clock, Search, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { jobsApi } from '@/lib/api';
+import { jobsApi, activityApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
@@ -55,7 +55,9 @@ export default function Jobs() {
     };
     
     try {
-      await jobsApi.create(jobData);
+      const created: any = await jobsApi.create(jobData);
+      const jobId = created?.id || (created?.data as any)?.id;
+      activityApi.create('job_created', jobId || '', { title: formData.title, skills }).catch(() => {});
       toast.success('Job posted!');
       
       const updated: any = await jobsApi.getAll();

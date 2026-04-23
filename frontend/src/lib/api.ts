@@ -155,12 +155,12 @@ export const activityApi = {
 
 // Billing
 export const billingApi = {
-  getPlan: () => request('/billing/plan'),
+  getPlan: () => request('/billing'),
   
   getInvoices: () => request('/billing/invoices'),
   
   updatePlan: (planId: string) =>
-    request('/billing/plan', { method: 'POST', body: JSON.stringify({ planId }) }),
+    request('/billing/upgrade', { method: 'POST', body: JSON.stringify({ plan: planId }) }),
 };
 
 // AI Chat

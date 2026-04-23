@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Sparkles, ArrowRight, Trophy, Download, Zap, Brain, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { jobsApi, screeningApi } from '@/lib/api';
+import { jobsApi, screeningApi, activityApi } from '@/lib/api';
 import { ScoreRing } from '@/components/ScoreRing';
 import { GradientAvatar } from '@/components/Avatar';
 import { cn } from '@/lib/utils';
@@ -54,10 +54,12 @@ export default function Screenings() {
         clearInterval(tick);
         setTimeout(async () => {
           try {
-            const data = await screeningApi.run(selectedJob, 10);
-            setResults(data.results || []);
+            const data: any = await screeningApi.run(selectedJob, 10);
+            const resultsData = data.results || data || [];
+            setResults(resultsData);
             setStep('results');
             confetti({ particleCount: 120, spread: 80, origin: { y: 0.4 }, colors: ['#8AFF6E', '#00FFC8', '#39D98A'] });
+            activityApi.create('screening_completed', selectedJob, { candidatesCount: resultsData.length }).catch(() => {});
           } catch (err: any) {
             toast.error(err.message);
             setStep('select');

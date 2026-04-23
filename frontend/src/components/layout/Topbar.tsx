@@ -99,6 +99,16 @@ export const Topbar = ({ onOpenCommand }: { onOpenCommand: () => void }) => {
                   notifications.map((n: any) => (
                     <div
                       key={n.id}
+                      onClick={async () => {
+                        if (n.read) return;
+                        try {
+                          await notificationsApi.markAsRead(n.id);
+                          setNotifications(notifications.map(notif =>
+                            notif.id === n.id ? { ...notif, read: true } : notif
+                          ));
+                          setUnread(prev => Math.max(0, prev - 1));
+                        } catch {}
+                      }}
                       className={cn(
                         'flex items-start gap-3 px-4 py-3 hover:bg-accent/50 cursor-pointer border-l-2 transition-colors',
                         !n.read ? 'border-primary bg-accent/20' : 'border-transparent'

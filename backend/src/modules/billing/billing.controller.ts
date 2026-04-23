@@ -17,6 +17,15 @@ export const billingController = {
       sendError(res, err.message);
     }
   },
+
+  async getInvoices(req: Request, res: Response) {
+    try {
+      const invoices = await billingService.getInvoices(req.user!.userId);
+      sendSuccess(res, invoices, "Invoices fetched");
+    } catch (err: any) {
+      sendError(res, err.message);
+    }
+  },
   
   async upgrade(req: Request, res: Response) {
     try {
