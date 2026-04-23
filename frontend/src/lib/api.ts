@@ -114,14 +114,24 @@ export const jobsApi = {
   updateCandidate: (jobId: string, candidateId: string, data: any) =>
     request(`/jobs/${jobId}/candidates/${candidateId}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
-  uploadCandidates: (jobId: string, file: File) => {
+uploadCandidates: (jobId: string, file: File) => {
     const formData = new FormData();
     formData.append('file', file);
+
     return fetch(`${API_BASE}/jobs/${jobId}/candidates/upload-csv`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${getToken()}` },
       body: formData,
-    }).then(r => r.json());
+    }).then(res => {
+      if (!res.ok) {
+        if (res.status === 401) {
+          clearAuth();
+          window.location.href = '/login';
+        }
+        return res.json().then(err => { throw new Error(err.message || 'Upload failed'); });
+      }
+      return res.json();
+    }).then(data => data.data || data);
   },
 };
 
@@ -204,21 +214,41 @@ export const insightsApi = {
     const jobs = Array.isArray(res) ? res : (res?.data || []);
     
     const totalJobs = jobs.length;
-    const totalCandidates = jobs.reduce((sum: number, j: any) => sum + (j._count?.candidates || 0), 0);
-    const screeningsRun = jobs.filter((j: any) => j.status === 'screening').length;
     
-    // Get all screening results for avg score
-    let totalScore = 0;
-    let scoreCount = 0;
-    for (const job of jobs.slice(0, 3)) {
+    // Fetch actual candidate counts for each job
+    let totalCandidates = 0;
+    for (const job of jobs) {
       try {
-        const results = await screeningApi.getResults(job.id) as any[];
-        results.forEach((r: any) => {
-          totalScore += parseFloat(r.score || 0);
-          scoreCount++;
-        });
+        const cands: any = await jobsApi.getCandidates(job.id);
+        const count = Array.isArray(cands) ? cands.length : (cands?.data?.length || 0);
+        totalCandidates += count;
       } catch {}
     }
+    
+    // Count actual screening sessions (jobs that have screening results)
+    let screeningsRun = 0;
+    
+    // Get all screening results for avg score and count
+    let totalScore = 0;
+    let scoreCount = 0;
+    
+    for (const job of jobs) {
+      try {
+        const res: any = await screeningApi.getResults(job.id);
+        const results = Array.isArray(res) ? res : (res?.data || []);
+        if (results.length > 0) {
+          screeningsRun++;
+          results.forEach((r: any) => {
+            const score = parseFloat(r.score || 0);
+            if (score > 0) {
+              totalScore += score;
+              scoreCount++;
+            }
+          });
+        }
+      } catch {}
+    }
+    
     const avgMatch = scoreCount > 0 ? Math.round(totalScore / scoreCount) : 0;
     
     return { totalJobs, totalCandidates, screeningsRun, avgMatch };
@@ -230,26 +260,33 @@ export const insightsApi = {
     
     // Get screening activity for last 7 days from real screening results
     const days = [];
+    const now = new Date();
+    
     for (let i = 6; i >= 0; i--) {
-      const date = new Date();
+      const date = new Date(now);
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
       
-      // Count screenings done that day (if we had createdAt on screenings)
-      // For now, calculate based on jobs with candidates
+      // Count screenings done that day from screening results createdAt
       let screenings = 0;
-      for (const job of jobs.slice(0, 5)) {
+      for (const job of jobs) {
         try {
-          const results = await screeningApi.getResults(job.id);
-          if (results && Array.isArray(results) && results.length > 0) {
-            screenings += results.length;
+          const results: any = await screeningApi.getResults(job.id);
+          const resultsArr: any[] = Array.isArray(results) ? results : (results?.data || []);
+          if (resultsArr.length > 0) {
+            const dayCount = resultsArr.filter((r: any) => {
+              const screenedDate = r.screenedAt || r.createdAt;
+              if (!screenedDate) return false;
+              return screenedDate.startsWith(dateStr) || new Date(screenedDate).toDateString() === date.toDateString();
+            }).length;
+            screenings += dayCount;
           }
         } catch {}
       }
       
       days.push({
         day: date.toLocaleDateString('en', { weekday: 'short' }),
-        screenings: screenings > 0 ? Math.min(screenings, 20) : 0,
+        screenings: screenings,
       });
     }
     return days;
@@ -261,28 +298,19 @@ export const insightsApi = {
     
     let high = 0, mid = 0, low = 0;
     
-    for (const job of jobs.slice(0, 5)) {
+    for (const job of jobs) {
       try {
-        const results = await screeningApi.getResults(job.id);
-        if (results && Array.isArray(results)) {
+        const res: any = await screeningApi.getResults(job.id);
+        const results = Array.isArray(res) ? res : (res?.data || []);
+        if (results.length > 0) {
           results.forEach((r: any) => {
             const score = parseFloat(r.score || 0);
             if (score >= 85) high++;
             else if (score >= 60) mid++;
-            else low++;
+            else if (score > 0) low++;
           });
         }
       } catch {}
-    }
-    
-    // If no real data, show placeholder
-    const total = high + mid + low;
-    if (total === 0) {
-      return [
-        { name: '85%+', value: 0, color: '#22c55e' },
-        { name: '60-84%', value: 0, color: '#eab308' },
-        { name: '<60%', value: 0, color: '#ef4444' },
-      ];
     }
     
     return [

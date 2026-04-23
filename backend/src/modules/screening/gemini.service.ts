@@ -1,7 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { env } from "../../config/env";
 import Groq from "groq-sdk";
-const pdf = require("pdf-parse");
 
 const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
 const groq = new Groq({ apiKey: env.GROQ_API_KEY });
@@ -229,106 +228,6 @@ IMPORTANT: The candidateId must match exactly one of the candidate IDs provided 
     }
   },
 
-  async parseResume(fileBuffer: Buffer, filename: string = "Resume.pdf"): Promise<UmuravaProfile> {
-    try {
-      const prompt = `Extract UMURAVA COMPLIANT JSON from resume.`;
-      const geminiModel = genAI.getGenerativeModel({ model: DEFAULT_MODEL });
-      const result = await geminiModel.generateContent({
-        contents: [{
-          role: 'user',
-          parts: [
-            { inlineData: { data: fileBuffer.toString("base64"), mimeType: "application/pdf" } },
-            { text: prompt }
-          ]
-        }]
-      });
-      const rawText = result.response.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      return JSON.parse(rawText.trim().replace(/^```json\s*/i, "").replace(/```$/i, "").trim());
-    } catch (geminiErr: any) {
-      console.warn("⚠️ GEMINI FAILED. Extracting PDF and Falling back to GROQ...");
-      try {
-        const data = await pdf(fileBuffer);
-        const groqPrompt = `Extract UMURAVA COMPLIANT JSON from the following resume text. Output a JSON object matching the exact schema.\n\nRESUME TEXT:\n${data.text}`;
-        const groqResponse = await groq.chat.completions.create({
-          model: "llama-3.3-70b-versatile",
-          messages: [{ role: "user", content: groqPrompt }],
-          response_format: { type: "json_object" }
-        });
-        const groqText = groqResponse.choices[0]?.message?.content || "{}";
-        return JSON.parse(groqText.trim().replace(/^```json\s*/i, "").replace(/```$/i, "").trim());
-      } catch (groqErr: any) {
-        console.warn("❌ GROQ FAILED. Activating Precise Heuristic Rescue Engine...", groqErr.message);
-
-        try {
-          const data = await pdf(fileBuffer);
-          const text = data.text;
-
-          const emailMatch = text.match(/\S+@\S+\.\S+/);
-          const email = emailMatch ? emailMatch[0] : `candidate.${Date.now()}@example.com`;
-
-          const cleanFilename = filename.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
-          const lines = text.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 2);
-          const firstLine = lines.length > 0 ? lines[0] : "";
-          const fullName = (firstLine.length < 50 && firstLine.length > 3) ? firstLine : cleanFilename;
-          const [firstName, ...rest] = fullName.split(' ');
-          const lastName = rest.join(' ') || "Talent";
-
-          const TECH_TAXONOMY = ["React", "Node", "TypeScript", "Python", "Java", "SQL", "AWS", "Docker", "Figma", "UI/UX", "Next.js", "Express", "Tailwind", "JavaScript", "C++", "C#", "Go", "Rust", "Vue", "Angular", "Kubernetes", "GCP", "Azure"];
-          const detectedSkills = TECH_TAXONOMY.filter(s => text.toLowerCase().includes(s.toLowerCase()));
-
-          let expYears = 1;
-          const yearsMatch = text.match(/([0-9]{1,2})\+?\s*(?:years?|yrs?)/i);
-          const dateRangeMatch = text.match(/20[1-2][0-9]\s*(?:-|to)\s*(?:20[1-2][0-9]|present|now|current)/gi);
-          if (yearsMatch) {
-            expYears = parseInt(yearsMatch[1], 10);
-          } else if (dateRangeMatch && dateRangeMatch.length > 0) {
-            expYears = dateRangeMatch.length;
-          }
-
-          return {
-            firstName,
-            lastName,
-            email,
-            headline: lines[1] || "Professional Talent",
-            location: text.includes("Rwanda") || text.includes("Kigali") ? "Kigali, Rwanda" : "Remote",
-            skills: detectedSkills.map(s => ({ name: s, level: "Advanced", yearsOfExperience: expYears })),
-            experience: [{
-              company: "Analyzed Experience",
-              role: lines[1] || "Specialist",
-              startDate: "2020",
-              endDate: "Present",
-              description: text.slice(0, 300) + "...",
-              technologies: detectedSkills.slice(0, 5),
-              isCurrent: true
-            }],
-            education: [{
-              institution: "Unspecified Inst.",
-              degree: text.includes("Master") ? "Master's" : "Bachelor's",
-              fieldOfStudy: "Professional Studies",
-              startYear: 2016,
-              endYear: 2020
-            }],
-            projects: [],
-            availability: { status: "Available", type: "Full-time" }
-          };
-        } catch (pdfErr) {
-          console.error("❌ Critical Heuristic Failure:", pdfErr);
-          return {
-            firstName: filename.split(/[ .-_]/)[0] || "Candidate",
-            lastName: "Profile",
-            email: `candidate.${Date.now()}@example.com`,
-            headline: "Professional Candidate",
-            location: "Remote",
-            skills: [],
-            experience: [],
-            education: [],
-            projects: [],
-            availability: { status: "Available", type: "Full-time" }
-          };
-        }
-      }
-    }
-  },
 
   async generateInterviewKit(
     job: { title: string; requiredSkills: string[] },

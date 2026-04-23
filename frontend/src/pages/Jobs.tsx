@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, MapPin, Users, Clock, Search, Loader2, Trash2 } from 'lucide-react';
+import { Plus, MapPin, Users, Clock, Search, Loader2, Trash2, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { jobsApi, activityApi } from '@/lib/api';
@@ -21,22 +21,45 @@ export default function Jobs() {
   const [open, setOpen] = useState(false);
   const [skills, setSkills] = useState<string[]>([]);
   const [skillInput, setSkillInput] = useState('');
-  const [formData, setFormData] = useState({ title: '', department: '', location: '', type: 'Full-time', description: '' });
+  const [formData, setFormData] = useState({ 
+    title: '', 
+    department: '', 
+    location: '', 
+    type: 'Full-time', 
+    description: '',
+    experienceYears: 0
+  });
 
   useEffect(() => {
     jobsApi.getAll()
-      .then((res: any) => {
+      .then(async (res: any) => {
         const jobsArray = Array.isArray(res) ? res : (res?.data || []);
-        setJobs(jobsArray);
+        
+        // Fetch actual candidate counts for each job
+        const jobsWithCounts = await Promise.all(
+          jobsArray.map(async (j: any) => {
+            try {
+              const cands: any = await jobsApi.getCandidates(j.id);
+              const count = Array.isArray(cands) ? cands.length : (cands?.data?.length || 0);
+              return { ...j, _count: { candidates: count } };
+            } catch {
+              return { ...j, _count: { candidates: 0 } };
+            }
+          })
+        );
+        
+        setJobs(jobsWithCounts);
       })
       .catch(() => setJobs([]))
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = jobs.filter(j =>
-    (filter === 'All' || j.status?.toLowerCase() === filter.toLowerCase()) &&
-    j.title?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = jobs.filter(j => {
+    const jobStatus = j.status?.toLowerCase() || 'open';
+    if (filter === 'All') return true;
+    if (filter === 'Active') return jobStatus === 'open' || jobStatus === 'screening';
+    return jobStatus === filter.toLowerCase();
+  });
 
   const addSkill = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && skillInput.trim()) {
@@ -46,12 +69,13 @@ export default function Jobs() {
     }
   };
 
-  const handleCreate = async () => {
+const handleCreate = async () => {
     const jobData = {
       title: formData.title,
       description: formData.description || '',
       requiredSkills: skills,
       location: formData.location || 'Remote',
+      experienceYears: formData.experienceYears || 0,
     };
     
     try {
@@ -60,14 +84,29 @@ export default function Jobs() {
       activityApi.create('job_created', jobId || '', `Created job "${formData.title}" with ${skills.length} skills`).catch(() => {});
       toast.success('Job posted!');
       
+      // Refresh jobs list with candidate counts
       const updated: any = await jobsApi.getAll();
       const jobsArray = Array.isArray(updated) ? updated : (updated?.data || []);
-      setJobs(jobsArray);
+      
+      // Fetch counts for all jobs
+      const jobsWithCounts = await Promise.all(
+        jobsArray.map(async (j: any) => {
+          try {
+            const cands: any = await jobsApi.getCandidates(j.id);
+            const count = Array.isArray(cands) ? cands.length : (cands?.data?.length || 0);
+            return { ...j, _count: { candidates: count } };
+          } catch {
+            return { ...j, _count: { candidates: 0 } };
+          }
+        })
+      );
+      
+      setJobs(jobsWithCounts);
       
       setOpen(false);
       setStep(1);
       setSkills([]);
-      setFormData({ title: '', department: '', location: '', type: 'Full-time', description: '' });
+             setFormData({ title: '', department: '', location: '', type: 'Full-time', description: '', experienceYears: 0 });
     } catch (err: any) {
       toast.error(String(err.message || err));
     }
@@ -142,26 +181,48 @@ export default function Jobs() {
                   <div className="space-y-1.5"><Label>Description</Label>
                     <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={4} placeholder="Describe the role..." />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label>Required skills (press Enter)</Label>
-                    <Input value={skillInput} onChange={(e) => setSkillInput(e.target.value)} onKeyDown={addSkill} placeholder="Type a skill..." />
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {skills.map(s => (
-                        <span key={s} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium animate-scale-in">
-                          {s}
-                          <button onClick={() => setSkills(skills.filter(x => x !== s))} className="hover:text-destructive">×</button>
-                        </span>
-                      ))}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label>Required skills (press Enter)</Label>
+                      <Input value={skillInput} onChange={(e) => setSkillInput(e.target.value)} onKeyDown={addSkill} placeholder="Type a skill..." />
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {skills.map(s => (
+                          <span key={s} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium animate-scale-in">
+                            {s}
+                            <button onClick={() => setSkills(skills.filter(x => x !== s))} className="hover:text-destructive">×</button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Minimum experience (years)</Label>
+                      <div className="relative">
+                        <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          type="number"
+                          min="0"
+                          max="30"
+                          value={formData.experienceYears}
+                          onChange={(e) => setFormData({ ...formData, experienceYears: parseInt(e.target.value) || 0 })}
+                          placeholder="0"
+                          className="pl-10"
+                        />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">Years of relevant experience required</p>
                     </div>
                   </div>
                 </>
               )}
-              {step === 3 && (
+               {step === 3 && (
                 <div className="rounded-xl bg-accent/40 p-4 text-sm space-y-2">
                   <p className="font-semibold">Review your job posting</p>
                   <p className="text-muted-foreground">Make sure everything looks right before publishing.</p>
-                  <div className="pt-2"><span className="font-medium">{formData.title || 'Untitled'}</span></div>
-                  <div><span className="font-medium">{skills.length}</span> skills added</div>
+                  <div className="pt-2 space-y-1">
+                    <div><span className="font-medium">{formData.title || 'Untitled'}</span></div>
+                    <div><span className="font-medium">{skills.length}</span> required skills</div>
+                    <div><span className="font-medium">{formData.experienceYears || 0}</span> years minimum experience</div>
+                    <div><span className="font-medium">{formData.location || 'Remote'}</span> · {formData.type || 'Full-time'}</div>
+                  </div>
                 </div>
               )}
             </div>
@@ -218,7 +279,10 @@ export default function Jobs() {
               )}>{job.status || 'open'}</span>
             </div>
             <h3 className="font-semibold text-base mb-1 group-hover:text-primary transition-colors">{job.title}</h3>
-            <p className="text-xs text-muted-foreground mb-4">{(job.department || 'Engineering')} · {(job.type || 'Full-time')}</p>
+            <p className="text-xs text-muted-foreground mb-4">
+              {(job.department || 'Engineering')} · {(job.type || 'Full-time')}
+              {job.experienceYears != null && ` · ${job.experienceYears}+ years`}
+            </p>
             <div className="flex flex-wrap gap-1.5 mb-4">
               {((job.requiredSkills || job.skills) || []).slice(0, 3).map(s => (
                 <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{s}</span>

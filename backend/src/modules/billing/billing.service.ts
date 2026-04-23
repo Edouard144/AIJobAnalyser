@@ -3,6 +3,13 @@ import { eq } from "drizzle-orm";
 import { db } from "../../config/db";
 import { users } from "../../db/schema/users";
 
+const PLAN_MAP: Record<string, string> = {
+  starter: 'free',
+  free: 'free',
+  pro: 'pro',
+  enterprise: 'enterprise',
+};
+
 const PLANS = {
   free: { screeningsLimit: 10, name: "Free" },
   pro: { screeningsLimit: 100, name: "Pro" },
@@ -36,21 +43,23 @@ export const billingService = {
   
   // Upgrade plan
   async upgrade(userId: string, newPlan: string) {
-    if (!PLANS[newPlan as keyof typeof PLANS]) {
+    const planValue = PLAN_MAP[newPlan] || newPlan;
+    if (!PLANS[planValue as keyof typeof PLANS]) {
       throw new Error("Invalid plan");
     }
     
     const [updated] = await db
       .update(users)
       .set({ 
-        plan: newPlan,
+        plan: planValue,
         billingCycleStart: new Date(),
         usageCount: "0"
       })
       .where(eq(users.id, userId))
       .returning();
     
-    return { plan: newPlan, upgradeSuccess: true };
+    if (!updated) throw new Error("User not found");
+    return { plan: planValue, upgradeSuccess: true };
   },
   
   // Increment usage

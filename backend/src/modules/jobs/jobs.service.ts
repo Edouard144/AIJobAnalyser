@@ -1,7 +1,8 @@
 // jobs service
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql, count } from "drizzle-orm";
 import { db } from "../../config/db";
 import { jobs } from "../../db/schema/jobs";
+import { candidates } from "../../db/schema/candidates";
 import { CreateJobInput, UpdateJobInput } from "./jobs.schema";
 
 export interface PaginatedResponse<T> {
@@ -26,26 +27,48 @@ export const jobsService = {
     return job;
   },
 
-  // ── Get all jobs for the logged-in recruiter (newest first) ───────────────
+// ── Get all jobs for the logged-in recruiter (newest first) ───────────────
   async getAll(recruiterId: string, page: number = 1, limit: number = 20) {
     const offset = (page - 1) * limit;
 
     // Get total count for pagination
     const [countResult] = await db
-      .select({ count: jobs.id })
+      .select({ count: count() })
       .from(jobs)
       .where(eq(jobs.recruiterId, recruiterId));
 
     const total = Number(countResult?.count) || 0;
 
-    // Get paginated data
-    const data = await db
+    // Get all jobs first
+    const allJobs = await db
       .select()
       .from(jobs)
       .where(eq(jobs.recruiterId, recruiterId))
-      .orderBy(desc(jobs.createdAt))
-      .limit(limit)
-      .offset(offset);
+      .orderBy(desc(jobs.createdAt));
+
+    // Get candidate counts for all jobs
+    const jobIds = allJobs.map(j => j.id);
+    let candidateCounts: Record<string, number> = {};
+    
+    if (jobIds.length > 0) {
+      const counts = await db
+        .select({ jobId: candidates.jobId, count: count() })
+        .from(candidates)
+        .where(sql`${candidates.jobId} IN (${sql.join(jobIds.map(id => sql`${id}`), sql`, `)})`)
+        .groupBy(candidates.jobId);
+      
+      candidateCounts = counts.reduce((acc, c) => {
+        acc[c.jobId as string] = Number(c.count);
+        return acc;
+      }, {} as Record<string, number>);
+    }
+
+    // Map jobs with their counts
+    const paginatedJobs = allJobs.slice(offset, offset + limit);
+    const data = paginatedJobs.map(job => ({
+      ...job,
+      _count: { candidates: candidateCounts[job.id as string] || 0 }
+    }));
 
     return {
       data,

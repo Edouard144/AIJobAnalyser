@@ -30,10 +30,24 @@ export default function Screenings() {
 
   useEffect(() => {
     jobsApi.getAll()
-      .then((res: any) => {
+      .then(async (res: any) => {
         const jobsArray = Array.isArray(res) ? res : (res?.data || []);
-        setJobs(jobsArray);
-        if (jobsArray.length > 0) setSelectedJob(jobsArray[0].id);
+        
+        // Fetch actual candidate counts for each job
+        const jobsWithCounts = await Promise.all(
+          jobsArray.map(async (j: any) => {
+            try {
+              const cands: any = await jobsApi.getCandidates(j.id);
+              const count = Array.isArray(cands) ? cands.length : (cands?.data?.length || 0);
+              return { ...j, _count: { candidates: count } };
+            } catch {
+              return { ...j, _count: { candidates: 0 } };
+            }
+          })
+        );
+        
+        setJobs(jobsWithCounts);
+        if (jobsWithCounts.length > 0) setSelectedJob(jobsWithCounts[0].id);
       })
       .catch(err => {
         console.error('Failed to load jobs:', err);
