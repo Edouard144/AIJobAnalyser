@@ -22,10 +22,6 @@ export const validate =
       return;
     }
     
-    // Merge validated data back
-    if (Object.keys(req.query).length > 0) {
-      req.query = { ...req.query, ...(result.data as any) };
-    }
     req.body = result.data;
     
     next();
