@@ -209,7 +209,7 @@ export default function JobDetail() {
               </Button>
             </div>
             <div className="grid gap-3">
-              {screeningResults.slice(0, 5).map((r: any, i: number) => {
+              {screeningResults.slice(0, 10).map((r: any, i: number) => {
                 const cand = r.candidate || {};
                 const name = cand.fullName || `${cand.firstName || ''} ${cand.lastName || ''}`.trim() || 'Unknown';
                 return (

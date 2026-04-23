@@ -72,10 +72,16 @@ export const geminiService = {
     topN: number = 10
   ): Promise<AIResult[]> {
     const cleanCandidate = (c: any) => {
+  const fname = c.firstName || '';
+  const lname = c.lastName || '';
+  const name = String(c.fullName || (fname && lname ? fname + ' ' + lname : fname || lname || 'Unknown')).substring(0, 100);
+  const skills = (c.skills || []).map((s: any) => typeof s === 'string' ? s : s?.name || '').filter((s: string) => s && s.length < 50).slice(0, 5);
+  const email = String(c.email || '').substring(0, 80);
   return {
     id: String(c.id || '').substring(0, 50),
-    name: String(c.fullName || `${c.firstName || ''} ${c.lastName || ''}` || 'Unknown').substring(0, 100),
-    skills: (c.skills || []).map((s: any) => String(typeof s === 'string' ? s : s?.name || '')).filter((s: string) => s && s.length < 50 && !s.match(/\.(png|jpg|jpeg|gif|bmp|webp)$/i)).slice(0, 5),
+    name: name || 'Unknown',
+    email: email,
+    skills: skills,
     yearsOfExperience: Number(c.experienceYears) || 0,
     currentPosition: String(c.currentPosition || '').substring(0, 100),
   };
@@ -137,12 +143,13 @@ Return JSON array with this EXACT structure (use candidate UUIDs from the list a
         else if (parsed && !Array.isArray(parsed) && Array.isArray(parsed.candidates)) parsed = parsed.candidates;
         else if (parsed && !Array.isArray(parsed)) parsed = [parsed];
         
-        // Map results back to actual candidate IDs using rank position
+        // Map results back to actual candidate IDs using index order
         return parsed.map((item: any, index: number) => {
           const rank = item.rank || (index + 1);
-          const matchedCandidate = candidates[rank - 1] || candidates[index] || candidates[0];
+          // Map by array position since AI should return candidateId
+          const matchedCandidate = candidates[rank - 1] || candidates[index] || candidates[candidates.length - 1];
           return {
-            candidateId: matchedCandidate?.id || item.candidateId,
+            candidateId: matchedCandidate?.id || candidates[0]?.id || item.candidateId,
             rank: rank,
             score: item.score || 50,
             strengths: item.strengths || [],
