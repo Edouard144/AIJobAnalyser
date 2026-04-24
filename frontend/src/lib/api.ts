@@ -1,5 +1,5 @@
 // AIRECRUIT API Client
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'https://airecruit-ve6s.onrender.com/api';
 
 export const getToken = () => localStorage.getItem('accessToken');
 
