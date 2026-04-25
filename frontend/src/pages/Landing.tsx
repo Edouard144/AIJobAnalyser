@@ -64,7 +64,7 @@ export default function Landing() {
      return () => window.removeEventListener('scroll', handleScroll);
    }, []);
 
-  return (
+   return (
     <div className="min-h-screen bg-[#080808] text-foreground selection:bg-white selection:text-black flex font-sans overflow-x-hidden">
       
       {/* ========== LEFT SIDEBAR ========== */}
