@@ -4,6 +4,7 @@ import {
   Check, X, Play, ChevronRight, FileSearch, Target, Clock, TrendingUp, Plus, Minus, MapPin, Sparkles,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LanguageToggle } from '@/components/LanguageToggle';
@@ -54,14 +55,14 @@ const faqs = [
 ];
 
 export default function Landing() {
-  const [scrollY, setScrollY] = useState(0);
-  const [activeFaq, setActiveFaq] = useState<number | null>(null);
+   const [scrollY, setScrollY] = useState(0);
+   const [activeFaq, setActiveFaq] = useState<number | null>(null);
 
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+   useEffect(() => {
+     const handleScroll = () => setScrollY(window.scrollY);
+     window.addEventListener('scroll', handleScroll, { passive: true });
+     return () => window.removeEventListener('scroll', handleScroll);
+   }, []);
 
   return (
     <div className="min-h-screen bg-[#080808] text-foreground selection:bg-white selection:text-black flex font-sans overflow-x-hidden">
