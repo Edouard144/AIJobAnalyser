@@ -1,116 +1,101 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Fraunces:ital,wght@1,400;1,500;1,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* ========================================================================
-   AIRECRUIT DESIGN SYSTEM
-   Dark-first SaaS aesthetic — neon green accents, glassmorphism, premium.
+   UMURAVA DESIGN SYSTEM
+   Dark-first tech-luxury aesthetic — warm ochre accents, grain, premium.
    ======================================================================== */
 
 @layer base {
   :root {
-    /* Light theme — clean white with blue accents */
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    /* Light theme — sophisticated warm neutrals */
+    --background: 240 10% 4%;
+    --foreground: 0 0% 100%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --card-border: 214 32% 91%;
+    --card: 240 10% 6%;
+    --card-foreground: 0 0% 100%;
+    --card-border: 240 10% 12%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover: 240 10% 5%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 217 91% 55%;
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 217 95% 70%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 240 10% 4%;
+    --primary-glow: 0 0% 100%;
 
-    --secondary: 210 100% 96%;
-    --secondary-foreground: 217 91% 35%;
+    --secondary: 240 10% 10%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 240 10% 8%;
+    --muted-foreground: 240 5% 65%;
 
-    --accent: 217 91% 95%;
-    --accent-foreground: 217 91% 35%;
+    --accent: 240 10% 15%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
+    --border: 240 10% 12%;
+    --input: 240 10% 10%;
+    --ring: 0 0% 100%;
 
-    --success: 145 65% 45%;
-    --warning: 35 100% 55%;
+    --radius: 0rem;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 217 91% 55%;
-
-    --radius: 0.85rem;
-
-    --sidebar-background: 210 40% 98%;
-    --sidebar-foreground: 222 47% 25%;
-    --sidebar-primary: 217 91% 55%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 40% 94%;
-    --sidebar-accent-foreground: 222 47% 11%;
-    --sidebar-border: 214 32% 91%;
-    --sidebar-ring: 217 91% 55%;
-
-    --gradient-primary: linear-gradient(135deg, hsl(217 91% 55%), hsl(199 95% 60%));
-    --gradient-glow: radial-gradient(circle at 50% 0%, hsl(217 91% 55% / 0.15), transparent 70%);
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100% / 0.85), hsl(210 40% 98% / 0.5));
-    --shadow-glow: 0 0 40px hsl(217 91% 55% / 0.25);
-    --shadow-elegant: 0 20px 60px -20px hsl(217 50% 30% / 0.18);
+    --gradient-primary: linear-gradient(135deg, hsl(0 0% 100%), hsl(0 0% 80%));
+    --gradient-glow: radial-gradient(circle at 50% 50%, hsl(0 0% 100% / 0.1), transparent 70%);
+    --shadow-glow: 0 0 40px hsl(0 0% 100% / 0.1);
+    --shadow-elegant: 0 30px 80px -20px hsl(0 0% 0% / 0.8);
   }
 
   .dark {
-    --background: 222 47% 6%;
-    --foreground: 210 40% 98%;
+    /* Dark theme — Deep Obsidian & Ochre */
+    --background: 240 10% 3%;
+    --foreground: 40 10% 98%;
 
-    --card: 222 47% 9%;
-    --card-foreground: 210 40% 98%;
-    --card-border: 217 33% 18%;
+    --card: 240 10% 6%;
+    --card-foreground: 40 10% 98%;
+    --card-border: 240 10% 12%;
 
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 240 10% 5%;
+    --popover-foreground: 40 10% 98%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 217 95% 72%;
+    --primary: 38 85% 55%;
+    --primary-foreground: 240 10% 3%;
+    --primary-glow: 38 95% 75%;
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 240 10% 10%;
+    --secondary-foreground: 40 10% 98%;
 
-    --muted: 217 33% 14%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 240 10% 8%;
+    --muted-foreground: 240 5% 65%;
 
-    --accent: 217 91% 18%;
-    --accent-foreground: 217 95% 80%;
+    --accent: 38 85% 15%;
+    --accent-foreground: 38 95% 85%;
 
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 40 10% 98%;
 
-    --success: 145 65% 53%;
-    --warning: 35 100% 64%;
+    --success: 145 55% 45%;
+    --warning: 35 100% 60%;
 
-    --border: 217 33% 18%;
-    --input: 217 33% 16%;
-    --ring: 217 91% 60%;
+    --border: 240 10% 12%;
+    --input: 240 10% 10%;
+    --ring: 38 85% 55%;
 
-    --sidebar-background: 222 47% 7%;
-    --sidebar-foreground: 210 40% 80%;
-    --sidebar-primary: 217 91% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 33% 13%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217 33% 16%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-background: 240 10% 4%;
+    --sidebar-foreground: 240 5% 85%;
+    --sidebar-primary: 38 85% 55%;
+    --sidebar-primary-foreground: 240 10% 3%;
+    --sidebar-accent: 240 10% 8%;
+    --sidebar-accent-foreground: 40 10% 98%;
+    --sidebar-border: 240 10% 10%;
+    --sidebar-ring: 38 85% 55%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(199 95% 65%));
-    --gradient-glow: radial-gradient(circle at 50% 0%, hsl(217 91% 60% / 0.2), transparent 70%);
-    --gradient-card: linear-gradient(145deg, hsl(222 47% 11% / 0.85), hsl(222 47% 8% / 0.6));
-    --shadow-glow: 0 0 60px hsl(217 91% 60% / 0.35);
-    --shadow-elegant: 0 30px 80px -20px hsl(0 0% 0% / 0.6);
+    --gradient-primary: linear-gradient(135deg, hsl(38 85% 55%), hsl(25 80% 60%));
+    --gradient-glow: radial-gradient(circle at 50% 0%, hsl(38 85% 55% / 0.15), transparent 70%);
+    --gradient-card: linear-gradient(145deg, hsl(240 10% 8% / 0.9), hsl(240 10% 5% / 0.8));
+    --shadow-glow: 0 0 60px hsl(38 85% 55% / 0.25);
+    --shadow-elegant: 0 30px 80px -20px hsl(0 0% 0% / 0.8);
   }
 }
 
@@ -136,11 +121,15 @@
   .dark body::before { opacity: 0.08; }
 
   h1, h2, h3, h4, h5 {
-    font-family: 'Space Grotesk', system-ui, sans-serif;
-    @apply font-semibold;
-    letter-spacing: -0.035em;
+    font-family: 'Inter', system-ui, sans-serif;
+    @apply font-black;
+    letter-spacing: -0.05em;
   }
-  h1, .text-display { letter-spacing: -0.045em; }
+  
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', sans-serif;
+  }
 
   /* Tabular figures everywhere numbers matter */
   .tabular { font-variant-numeric: tabular-nums; }

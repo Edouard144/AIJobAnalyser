@@ -1,4 +1,4 @@
-// AIRECRUIT API Client
+// UMURAVA API Client
 const API_BASE = 'https://airecruit-ve6s.onrender.com/api';
 
 export const getToken = () => localStorage.getItem('accessToken');

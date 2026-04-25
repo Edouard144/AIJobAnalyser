@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Bell, Search, Command, CheckCircle2, Users, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { notificationsApi } from '@/lib/api';
@@ -44,56 +43,62 @@ export const Topbar = ({ onOpenCommand }: { onOpenCommand: () => void }) => {
 
   const getIcon = (type: string) => {
     switch (type) {
-      case 'screening': return <Sparkles className="h-4 w-4 text-primary" />;
-      case 'candidate': return <Users className="h-4 w-4 text-secondary" />;
-      case 'job': return <CheckCircle2 className="h-4 w-4 text-success" />;
-      default: return <Bell className="h-4 w-4" />;
+      case 'screening': return <Sparkles className="h-4 w-4 text-white/60" />;
+      case 'candidate': return <Users className="h-4 w-4 text-white/60" />;
+      case 'job': return <CheckCircle2 className="h-4 w-4 text-white/60" />;
+      default: return <Bell className="h-4 w-4 text-white/40" />;
     }
   };
 
   return (
-    <header className="sticky top-0 z-20 h-16 border-b border-border bg-background/70 backdrop-blur-xl">
-      <div className="flex h-full items-center justify-between px-4 md:px-6 gap-4">
+    <header className="sticky top-0 z-20 h-14 border-b border-white/5 bg-[#080808]/90 backdrop-blur-xl shrink-0">
+      <div className="flex h-full items-center justify-between px-6 gap-4">
+        {/* Search */}
         <button
           onClick={onOpenCommand}
-          className="flex-1 max-w-md flex items-center gap-3 px-4 h-10 rounded-lg border border-border bg-muted/40 hover:bg-muted text-sm text-muted-foreground transition-colors group"
+          className="flex-1 max-w-sm flex items-center gap-3 px-4 h-9 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/5 text-xs text-white/20 hover:text-white/40 transition-all group"
         >
-          <Search className="h-4 w-4" />
-          <span className="hidden sm:inline">Search jobs, candidates, actions...</span>
-          <span className="sm:hidden">Search...</span>
-          <kbd className="ml-auto hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded bg-background border border-border text-[10px] font-mono">
-            <Command className="h-3 w-3" />K
+          <Search className="h-3.5 w-3.5 shrink-0" />
+          <span className="hidden sm:inline font-black uppercase tracking-[0.1em] text-[9px]">Search...</span>
+          <kbd className="ml-auto hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-white/5 border border-white/5 text-[9px] font-mono text-white/20">
+            <Command className="h-2.5 w-2.5" />K
           </kbd>
         </button>
 
+        {/* Right Controls */}
         <div className="flex items-center gap-1">
           <LanguageToggle />
           <ThemeToggle />
+
+          {/* Notifications */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative rounded-full">
-                <Bell className={cn('h-5 w-5', shake && 'animate-shake')} />
+              <button className="relative h-9 w-9 rounded-xl flex items-center justify-center text-white/30 hover:text-white hover:bg-white/5 transition-all">
+                <Bell className={cn('h-4 w-4', shake && 'animate-shake')} />
                 {unread > 0 && (
-                  <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary glow-primary">
-                    <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-75" />
+                  <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-white">
+                    <span className="absolute inset-0 rounded-full bg-white animate-ping opacity-50" />
                   </span>
                 )}
-              </Button>
+              </button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-96 p-0 animate-scale-in">
-              <div className="flex items-center justify-between p-4 border-b border-border">
+            <PopoverContent
+              align="end"
+              className="w-96 p-0 bg-[#0d0d0d] border border-white/10 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] animate-scale-in"
+            >
+              <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
                 <div>
-                  <p className="font-semibold">Notifications</p>
-                  <p className="text-xs text-muted-foreground">{unread} unread</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Notifications</p>
+                  <p className="text-[9px] font-black tracking-[0.2em] text-white/20 uppercase mt-0.5">{unread} unread signals</p>
                 </div>
-                <Button variant="ghost" size="sm" onClick={markAllRead} className="text-xs">
-                  Mark all read
-                </Button>
+                <button onClick={markAllRead} className="text-[9px] font-black uppercase tracking-[0.2em] text-white/20 hover:text-white transition-colors px-3 py-1.5 rounded-lg hover:bg-white/5">
+                  Clear all
+                </button>
               </div>
-              <div className="max-h-[420px] overflow-y-auto">
+              <div className="max-h-[380px] overflow-y-auto">
                 {notifications.length === 0 ? (
-                  <div className="p-8 text-center text-muted-foreground text-sm">
-                    No notifications yet
+                  <div className="p-10 text-center">
+                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/20">No signals yet</p>
                   </div>
                 ) : (
                   notifications.map((n: any) => (
@@ -110,15 +115,15 @@ export const Topbar = ({ onOpenCommand }: { onOpenCommand: () => void }) => {
                         } catch {}
                       }}
                       className={cn(
-                        'flex items-start gap-3 px-4 py-3 hover:bg-accent/50 cursor-pointer border-l-2 transition-colors',
-                        !n.read ? 'border-primary bg-accent/20' : 'border-transparent'
+                        'flex items-start gap-3 px-5 py-3.5 hover:bg-white/5 cursor-pointer border-l-2 transition-all',
+                        !n.read ? 'border-white/30 bg-white/[0.02]' : 'border-transparent'
                       )}
                     >
-                      <span className="text-lg shrink-0">{getIcon(n.type)}</span>
+                      <span className="shrink-0 mt-0.5">{getIcon(n.type)}</span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">{n.title || n.message}</p>
-                        <p className="text-xs text-muted-foreground truncate">{n.description}</p>
-                        <p className="text-[10px] text-muted-foreground mt-1">
+                        <p className="text-xs font-bold text-white truncate">{n.title || n.message}</p>
+                        <p className="text-[10px] text-white/30 truncate mt-0.5">{n.description}</p>
+                        <p className="text-[9px] font-black uppercase tracking-[0.15em] text-white/15 mt-1">
                           {n.createdAt ? new Date(n.createdAt).toLocaleDateString() : 'recently'}
                         </p>
                       </div>

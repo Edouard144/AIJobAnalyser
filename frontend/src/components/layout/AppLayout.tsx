@@ -11,11 +11,14 @@ export const AppLayout = ({ children }: { children?: ReactNode }) => {
   const location = useLocation();
 
   return (
-    <div className="flex min-h-screen w-full bg-background">
+    <div className="flex min-h-screen w-full bg-[#080808] text-white">
       <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar onOpenCommand={() => setPaletteOpen(true)} />
-        <main key={location.pathname} className="flex-1 p-4 md:p-8 animate-fade-in-up">
+        <main
+          key={location.pathname}
+          className="flex-1 p-6 md:p-8 animate-fade-in-up overflow-auto"
+        >
           {children || <Outlet />}
         </main>
       </div>

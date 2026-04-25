@@ -1,13 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, Briefcase, Users, ScanSearch, BarChart3, Sparkles, Activity,
-  UserCircle, UsersRound, CreditCard, HelpCircle, ChevronLeft, Menu,
-  LogOut,
+  LayoutDashboard, Briefcase, Users, ScanSearch, BarChart3, Activity,
+  UserCircle, UsersRound, CreditCard, HelpCircle, ChevronLeft, LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
 import { clearAuth } from '@/lib/api';
 
 export const Sidebar = ({ collapsed, setCollapsed }: { collapsed: boolean; setCollapsed: (b: boolean) => void }) => {
@@ -18,9 +16,7 @@ export const Sidebar = ({ collapsed, setCollapsed }: { collapsed: boolean; setCo
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
-      try {
-        setUser(JSON.parse(userData));
-      } catch {}
+      try { setUser(JSON.parse(userData)); } catch {}
     }
   }, []);
 
@@ -28,7 +24,7 @@ export const Sidebar = ({ collapsed, setCollapsed }: { collapsed: boolean; setCo
     if (!user) return 'JD';
     const name = user.fullName || user.firstName || '';
     if (!name) return user.email?.[0]?.toUpperCase() || 'JD';
-    return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'JD';
+    return name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'JD';
   };
 
   const getName = () => {
@@ -38,7 +34,7 @@ export const Sidebar = ({ collapsed, setCollapsed }: { collapsed: boolean; setCo
 
   const sections = [
     {
-      label: t('nav.main'),
+      label: 'MAIN',
       items: [
         { to: '/dashboard', icon: LayoutDashboard, label: t('nav.dashboard') },
         { to: '/jobs', icon: Briefcase, label: t('nav.jobs') },
@@ -47,15 +43,14 @@ export const Sidebar = ({ collapsed, setCollapsed }: { collapsed: boolean; setCo
       ],
     },
     {
-      label: t('nav.analytics'),
+      label: 'ANALYTICS',
       items: [
         { to: '/reports', icon: BarChart3, label: t('nav.reports') },
-        { to: '/insights', icon: Sparkles, label: t('nav.insights') },
-        { to: '/ai-activity', icon: Activity, label: t('nav.aiActivity') },
+        { to: '/insights', icon: Activity, label: t('nav.insights') },
       ],
     },
     {
-      label: t('nav.settings'),
+      label: 'SETTINGS',
       items: [
         { to: '/account', icon: UserCircle, label: t('nav.account') },
         { to: '/team', icon: UsersRound, label: t('nav.team') },
@@ -68,35 +63,38 @@ export const Sidebar = ({ collapsed, setCollapsed }: { collapsed: boolean; setCo
   return (
     <aside
       className={cn(
-        'sticky top-0 h-screen flex-shrink-0 border-r border-border bg-sidebar transition-all duration-300 ease-out z-30',
-        collapsed ? 'w-[72px]' : 'w-64'
+        'sticky top-0 h-screen flex-shrink-0 flex flex-col bg-[#080808] border-r border-white/5 transition-all duration-300 ease-out z-30',
+        collapsed ? 'w-[72px]' : 'w-60'
       )}
     >
-      <div className="flex h-16 items-center justify-between px-4 border-b border-sidebar-border">
-        <div className="flex items-center gap-2 overflow-hidden">
-          <div className="h-9 w-9 rounded-xl bg-gradient-primary flex items-center justify-center shrink-0 glow-primary">
-            <Sparkles className="h-5 w-5 text-primary-foreground" />
-          </div>
+      {/* Brand Header */}
+      <div className="flex h-16 items-center justify-between px-4 border-b border-white/5 shrink-0">
+        <div className="flex items-center gap-3 overflow-hidden">
           {!collapsed && (
-            <span className="font-display font-bold text-lg tracking-tight whitespace-nowrap">
-              AI<span className="text-gradient">RECRUIT</span>
+            <span className="text-sm font-black tracking-[0.2em] uppercase text-white whitespace-nowrap">
+              UMU<span className="text-white/30">RAVA</span>
             </span>
           )}
+          {collapsed && (
+            <span className="text-sm font-black tracking-[0.2em] text-white">U</span>
+          )}
         </div>
-        <Button
-          variant="ghost" size="icon"
+        <button
           onClick={() => setCollapsed(!collapsed)}
-          className={cn('h-7 w-7 shrink-0', collapsed && 'absolute right-2')}
+          className="h-7 w-7 shrink-0 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-white/5 transition-all"
         >
           <ChevronLeft className={cn('h-4 w-4 transition-transform', collapsed && 'rotate-180')} />
-        </Button>
+        </button>
       </div>
 
-      <nav className="p-3 space-y-6 overflow-y-auto h-[calc(100vh-64px-72px)] scrollbar-hide">
+      {/* Navigation */}
+      <nav className="flex-1 py-6 overflow-y-auto scrollbar-hide space-y-8 px-3">
         {sections.map(section => (
           <div key={section.label}>
             {!collapsed && (
-              <p className="px-3 mb-2 text-[10px] font-semibold tracking-widest text-muted-foreground/70">{section.label}</p>
+              <p className="px-3 mb-3 text-[9px] font-black tracking-[0.4em] text-white/20">
+                {section.label}
+              </p>
             )}
             <ul className="space-y-1">
               {section.items.map(item => {
@@ -106,17 +104,22 @@ export const Sidebar = ({ collapsed, setCollapsed }: { collapsed: boolean; setCo
                     <NavLink
                       to={item.to}
                       className={cn(
-                        'group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all',
+                        'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200',
+                        collapsed && 'justify-center',
                         active
-                          ? 'bg-accent text-accent-foreground'
-                          : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                          ? 'bg-white/10 text-white'
+                          : 'text-white/30 hover:bg-white/5 hover:text-white/70'
                       )}
                     >
                       {active && (
-                        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-primary glow-primary" />
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-r-full bg-white" />
                       )}
-                      <item.icon className={cn('h-[18px] w-[18px] shrink-0', active && 'text-primary')} />
-                      {!collapsed && <span className="truncate">{item.label}</span>}
+                      <item.icon className={cn('h-[17px] w-[17px] shrink-0 transition-colors', active ? 'text-white' : 'text-white/30 group-hover:text-white/70')} />
+                      {!collapsed && (
+                        <span className={cn('truncate text-[11px] font-bold tracking-[0.08em] uppercase transition-colors', active ? 'text-white' : 'text-white/40 group-hover:text-white/70')}>
+                          {item.label}
+                        </span>
+                      )}
                     </NavLink>
                   </li>
                 );
@@ -126,35 +129,36 @@ export const Sidebar = ({ collapsed, setCollapsed }: { collapsed: boolean; setCo
         ))}
       </nav>
 
-<div className="absolute bottom-0 left-0 right-0 p-3 border-t border-sidebar-border bg-sidebar space-y-1">
-        <div className={cn('flex items-center gap-3 rounded-lg p-2', !collapsed && 'hover:bg-sidebar-accent cursor-pointer')}>
-          <div className="h-9 w-9 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-semibold text-sm shrink-0">
+      {/* User Footer */}
+      <div className="border-t border-white/5 p-3 space-y-1 shrink-0">
+        <div className={cn(
+          'flex items-center gap-3 rounded-xl p-2.5',
+          !collapsed && 'hover:bg-white/5 cursor-pointer transition-all'
+        )}>
+          <div className="h-8 w-8 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white font-black text-xs shrink-0">
             {getInitials()}
           </div>
           {!collapsed && (
             <div className="overflow-hidden flex-1 min-w-0">
-              <p className="text-sm font-semibold truncate">{getName()}</p>
-              <p className="text-xs text-muted-foreground truncate">{user?.plan || 'Recruiter'}</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-white truncate">{getName()}</p>
+              <p className="text-[9px] font-black tracking-[0.2em] text-white/20 truncate uppercase">{user?.plan || 'Recruiter'}</p>
             </div>
           )}
         </div>
+
         <button
           onClick={() => { clearAuth(); window.location.href = '/login'; }}
           className={cn(
-            'w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors',
-            !collapsed && 'px-3', collapsed && 'justify-center px-2'
+            'w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-white/20 hover:bg-white/5 hover:text-white/60 transition-all',
+            collapsed && 'justify-center px-2'
           )}
         >
-          <LogOut className="h-[18px] w-[18px] shrink-0" />
-          {!collapsed && <span className="font-medium">Sign out</span>}
+          <LogOut className="h-[16px] w-[16px] shrink-0" />
+          {!collapsed && (
+            <span className="text-[10px] font-black uppercase tracking-[0.15em]">Sign out</span>
+          )}
         </button>
       </div>
     </aside>
   );
 };
-
-export const MobileSidebarTrigger = ({ onClick }: { onClick: () => void }) => (
-  <Button variant="ghost" size="icon" className="md:hidden" onClick={onClick}>
-    <Menu className="h-5 w-5" />
-  </Button>
-);

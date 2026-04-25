@@ -106,20 +106,22 @@ export default function VerifyOTP() {
 
   return (
     <AuthLayout>
-      <div className="w-full max-w-md animate-fade-in-up">
-        <div className="glass rounded-2xl p-8 shadow-elegant text-center">
-          <div className="mx-auto h-16 w-16 rounded-2xl bg-gradient-primary flex items-center justify-center mb-6 glow-primary">
-            <ShieldCheck className="h-8 w-8 text-primary-foreground" />
+      <div className="w-full max-w-lg lg:max-w-xl animate-fade-in-up">
+        {/* Transparent Tech Card */}
+        <div className="bg-white/[0.02] backdrop-blur-3xl border border-white/10 rounded-[2rem] p-8 lg:p-10 shadow-[0_0_100px_rgba(0,0,0,0.5)] text-center">
+          <div className="mb-8">
+            <span className="text-[9px] font-black uppercase tracking-[0.5em] text-white/30 mb-4 block font-sans">Verification Protocol</span>
+            <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter leading-none mb-3">
+              Access <span className="text-white/20">Code.</span>
+            </h1>
+            <p className="text-[13px] text-white/40 font-medium">Verify your identity to authorize the session.</p>
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/20 mt-4 flex items-center justify-center gap-2">
+              <Mail className="h-2.5 w-2.5" />
+              {email || 'PENDING_IDENTITY'}
+            </p>
           </div>
 
-          <h1 className="text-2xl font-display font-bold mb-2">{t('auth.verifyEmail')}</h1>
-          <p className="text-muted-foreground text-sm mb-1">{t('auth.verifySubtitle')}</p>
-          <p className="text-sm font-medium flex items-center justify-center gap-1.5 mb-8">
-            <Mail className="h-3.5 w-3.5 text-primary" />
-            {email || 'your@email.com'}
-          </p>
-
-          <div className="flex justify-center gap-2 sm:gap-3 mb-6" onPaste={handlePaste}>
+          <div className="flex justify-center gap-2.5 mb-8" onPaste={handlePaste}>
             {code.map((digit, i) => (
               <input
                 key={i}
@@ -129,7 +131,7 @@ export default function VerifyOTP() {
                 onKeyDown={(e) => handleKeyDown(i, e)}
                 inputMode="numeric"
                 maxLength={1}
-                className="h-14 w-11 sm:w-12 text-center text-xl font-display font-bold rounded-xl border-2 border-border bg-background focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/20 transition-all"
+                className="h-14 w-11 sm:w-12 text-center text-xl font-black rounded-xl border border-white/5 bg-white/5 text-white focus:border-white/20 focus:outline-none transition-all"
               />
             ))}
           </div>
@@ -137,18 +139,17 @@ export default function VerifyOTP() {
           <Button
             onClick={() => submit()} 
             disabled={loading || code.some(d => !d)}
-            className="w-full h-11 bg-gradient-primary text-primary-foreground font-semibold group glow-primary hover:scale-[1.02] transition-transform"
+            className="w-full h-14 bg-white text-black font-black uppercase tracking-[0.2em] text-[10px] hover:bg-white/90 transition-all shadow-glow rounded-xl"
           >
-            {loading ? 'Verifying...' : t('auth.verify')}
-            <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+            {loading ? 'Authorizing...' : t('auth.verify')}
           </Button>
 
-          <div className="mt-6 text-sm text-muted-foreground">
-            Didn't receive it?{' '}
+          <div className="mt-8 text-[9px] font-black uppercase tracking-[0.3em] text-white/20">
+            Internal Delay?{' '}
             {countdown > 0 ? (
-              <span>Resend in {countdown}s</span>
+              <span>Retry in {countdown}s</span>
             ) : (
-              <button onClick={resend} className="text-primary font-semibold hover:underline">{t('auth.resend')}</button>
+              <button onClick={resend} className="text-white hover:underline underline-offset-[4px] decoration-white/20 transition-all uppercase">{t('auth.resend')}</button>
             )}
           </div>
         </div>

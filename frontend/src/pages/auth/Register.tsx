@@ -54,89 +54,96 @@ export default function Register() {
 
   return (
     <AuthLayout>
-      <div className="w-full max-w-md animate-fade-in-up">
-        <div className="glass rounded-2xl p-8 shadow-elegant">
-          <div className="mb-6">
-            <h1 className="text-3xl font-display font-bold mb-2">{t('auth.createAccount')}</h1>
-            <p className="text-muted-foreground text-sm">Start screening candidates in 2 minutes</p>
+      <div className="w-full max-w-lg lg:max-w-xl animate-fade-in-up">
+        {/* Transparent Tech Card */}
+        <div className="bg-white/[0.02] backdrop-blur-3xl border border-white/10 rounded-[2rem] p-8 lg:p-10 shadow-[0_0_100px_rgba(0,0,0,0.5)]">
+          <div className="mb-8">
+            <span className="text-[9px] font-black uppercase tracking-[0.5em] text-white/30 mb-4 block font-sans">Access Protocol</span>
+            <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter leading-none mb-3">
+              Create <span className="text-white/20">Account.</span>
+            </h1>
+            <p className="text-[13px] text-white/40 font-medium leading-relaxed">Start screening candidates with unified global standards.</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-3.5">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">{t('auth.firstName')}</Label>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 ml-4">{t('auth.firstName')}</Label>
                 <Input 
                   name="firstName"
-                  placeholder="Jordan" 
-                  className="h-11" 
+                  placeholder="First" 
+                  className="h-12 bg-white/5 border-white/5 text-white placeholder:text-white/10 focus:border-white/20 px-5 rounded-xl transition-all" 
                   required 
                   value={formData.firstName}
                   onChange={handleChange}
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">{t('auth.lastName')}</Label>
+              <div className="space-y-2">
+                <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 ml-4">{t('auth.lastName')}</Label>
                 <Input 
                   name="lastName"
-                  placeholder="Devos" 
-                  className="h-11" 
+                  placeholder="Last" 
+                  className="h-12 bg-white/5 border-white/5 text-white placeholder:text-white/10 focus:border-white/20 px-5 rounded-xl transition-all" 
                   required 
                   value={formData.lastName}
                   onChange={handleChange}
                 />
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">{t('auth.email')}</Label>
+
+            <div className="space-y-2">
+              <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 ml-4">{t('auth.email')}</Label>
               <Input 
                 name="email"
                 type="email" 
-                placeholder="you@company.com" 
-                className="h-11" 
+                placeholder="you@enterprise.com" 
+                className="h-12 bg-white/5 border-white/5 text-white placeholder:text-white/10 focus:border-white/20 px-5 rounded-xl transition-all" 
                 required 
                 value={formData.email}
                 onChange={handleChange}
               />
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">{t('auth.password')}</Label>
-              <Input 
-                name="password"
-                type="password" 
-                placeholder="••••••••" 
-                className="h-11" 
-                required 
-                minLength={6}
-                value={formData.password}
-                onChange={handleChange}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">{t('auth.confirmPassword')}</Label>
-              <Input 
-                name="confirmPassword"
-                type="password" 
-                placeholder="••••••••" 
-                className="h-11" 
-                required 
-                value={formData.confirmPassword}
-                onChange={handleChange}
-              />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 ml-4">{t('auth.password')}</Label>
+                <Input 
+                  name="password"
+                  type="password" 
+                  placeholder="••••••••" 
+                  className="h-12 bg-white/5 border-white/5 text-white placeholder:text-white/10 focus:border-white/20 px-5 rounded-xl transition-all" 
+                  required 
+                  minLength={6}
+                  value={formData.password}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 ml-4">Confirm</Label>
+                <Input 
+                  name="confirmPassword"
+                  type="password" 
+                  placeholder="••••••••" 
+                  className="h-12 bg-white/5 border-white/5 text-white placeholder:text-white/10 focus:border-white/20 px-5 rounded-xl transition-all" 
+                  required 
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                />
+              </div>
             </div>
 
             <Button
               type="submit" 
               disabled={loading}
-              className="w-full h-11 bg-gradient-primary text-primary-foreground font-semibold group glow-primary hover:scale-[1.02] transition-transform mt-2"
+              className="w-full h-14 bg-white text-black font-black uppercase tracking-[0.2em] text-[10px] hover:bg-white/90 transition-all shadow-glow mt-4 rounded-xl"
             >
-              {loading ? 'Creating account...' : t('auth.register')}
-              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+              {loading ? 'Authorizing...' : t('auth.register')}
             </Button>
           </form>
 
-          <p className="text-center text-sm text-muted-foreground mt-6">
+          <p className="text-center text-[9px] font-black uppercase tracking-[0.3em] text-white/20 mt-10 mb-0">
             {t('auth.haveAccount')}{' '}
-            <Link to="/login" className="text-primary font-semibold hover:underline underline-offset-4">{t('auth.login')}</Link>
+            <Link to="/login" className="text-white hover:underline underline-offset-[4px] decoration-white/20 transition-all">{t('auth.login')}</Link>
           </p>
         </div>
       </div>

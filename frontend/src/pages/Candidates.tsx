@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Upload, LayoutGrid, List, Loader2 } from 'lucide-react';
+import { Search, Upload, LayoutGrid, List, Loader2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { jobsApi, screeningApi, activityApi } from '@/lib/api';
@@ -14,21 +14,10 @@ import { GradientAvatar } from '@/components/Avatar';
 
 type Candidate = {
   id: string;
-  firstName?: string;
-  lastName?: string;
-  fullName?: string;
-  email?: string;
-  phone?: string;
+  firstName?: string; lastName?: string; fullName?: string; email?: string; phone?: string;
   skills?: Array<{ name: string; level?: string; yearsOfExperience?: number } | string>;
-  experienceYears?: number;
-  educationLevel?: string;
-  currentPosition?: string;
-  matchScore?: number;
-  status?: string;
-  strengths?: string[];
-  gaps?: string[];
-  recommendation?: string;
-  createdAt?: string;
+  experienceYears?: number; educationLevel?: string; currentPosition?: string;
+  matchScore?: number; status?: string; strengths?: string[]; gaps?: string[]; recommendation?: string; createdAt?: string;
 };
 
 export default function Candidates() {
@@ -47,17 +36,12 @@ export default function Candidates() {
 
   const loadCandidatesForJob = async (jobId: string) => {
     if (jobId === 'all') {
-// Fetch candidates from ALL jobs in parallel
-      const results = await Promise.all(
-        jobs.map((j: any) => jobsApi.getCandidates(j.id))
-      );
+      const results = await Promise.all(jobs.map((j: any) => jobsApi.getCandidates(j.id)));
       const combined = results.flatMap((r: any) => r.data || r || []);
-      setCandidates(combined);
-      setAllCandidates(combined);
+      setCandidates(combined); setAllCandidates(combined);
     } else {
       const cands: any = await jobsApi.getCandidates(jobId);
-      const jobCandidates = Array.isArray(cands) ? cands : (cands?.data || []);
-      setCandidates(jobCandidates);
+      setCandidates(Array.isArray(cands) ? cands : (cands?.data || []));
     }
   };
 
@@ -66,46 +50,20 @@ export default function Candidates() {
       try {
         const res: any = await jobsApi.getAll();
         const jobsArray = Array.isArray(res) ? res : (res?.data || []);
-        
-        // Fetch actual candidate counts for each job
-        const jobsWithCounts = await Promise.all(
-          jobsArray.map(async (j: any) => {
-            try {
-              const cands: any = await jobsApi.getCandidates(j.id);
-              const count = Array.isArray(cands) ? cands.length : (cands?.data?.length || 0);
-              return { ...j, _count: { candidates: count } };
-            } catch {
-              return { ...j, _count: { candidates: 0 } };
-            }
-          })
-        );
-        
+        const jobsWithCounts = await Promise.all(jobsArray.map(async (j: any) => {
+          try { const c: any = await jobsApi.getCandidates(j.id); return { ...j, _count: { candidates: Array.isArray(c) ? c.length : (c?.data?.length || 0) } }; }
+          catch { return { ...j, _count: { candidates: 0 } }; }
+        }));
         setJobs(jobsWithCounts);
-        // Load all candidates by default
-        if (jobsWithCounts.length > 0) {
-          setLoading(true);
-          await loadCandidatesForJob('all');
-        }
-      } catch {
-        setJobs([]);
-        setCandidates([]);
-      } finally {
-        setLoading(false);
-      }
+        if (jobsWithCounts.length > 0) { setLoading(true); await loadCandidatesForJob('all'); }
+      } catch { setJobs([]); setCandidates([]); } finally { setLoading(false); }
     };
-    
     loadJobs();
   }, []);
 
-  // When job selection changes, reload candidates
-  useEffect(() => {
-    if (jobs.length > 0) {
-      loadCandidatesForJob(selectedJob);
-    }
-  }, [selectedJob, jobs]);
+  useEffect(() => { if (jobs.length > 0) loadCandidatesForJob(selectedJob); }, [selectedJob, jobs]);
 
   const topMatches = candidates.filter(c => (c.matchScore || 0) >= 85).length;
-
   const filtered = candidates.filter(c => {
     const name = c.fullName || `${c.firstName || ''} ${c.lastName || ''}`;
     const matchesSearch = name.toLowerCase().includes(search.toLowerCase()) || (c.email || '').toLowerCase().includes(search.toLowerCase());
@@ -116,16 +74,10 @@ export default function Candidates() {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    console.log('[CSV Upload] File selected:', file?.name, 'Job ID:', selectedJob);
-    if (!file || !selectedJob) {
-      toast.error('Please select a job first');
-      return;
-    }
+    if (!file || !selectedJob) { toast.error('Please select a job first'); return; }
     setUploading(true);
     try {
-      console.log('[CSV Upload] Starting upload...');
       const result: any = await jobsApi.uploadCandidates(selectedJob, file);
-      console.log('[CSV Upload] Result:', result);
       const count = result?.inserted || result?.candidates?.length || 0;
       toast.success(`${count} candidate${count !== 1 ? 's' : ''} uploaded!`);
       setUploadOpen(false);
@@ -133,64 +85,61 @@ export default function Candidates() {
       const uploaded = Array.isArray(cands) ? cands : (cands?.data || []);
       setCandidates(uploaded);
       activityApi.create('candidates_uploaded', selectedJob, { count: uploaded.length }).catch(() => {});
-    } catch (err: any) {
-      console.error('[CSV Upload] Error:', err);
-      toast.error(err.message);
-    } finally {
-      setUploading(false);
-    }
+    } catch (err: any) { toast.error(err.message); } finally { setUploading(false); }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <Loader2 className="h-6 w-6 animate-spin text-white/30" />
+    </div>
+  );
 
   return (
-    <div className="space-y-6 max-w-[1600px] mx-auto">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="space-y-8 max-w-[1600px] mx-auto">
+      {/* Header */}
+      <div className="flex flex-wrap items-end justify-between gap-4 animate-fade-in-up">
         <div>
-          <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight">Candidates</h1>
-          <p className="text-muted-foreground mt-1">{filtered.length} candidates · {topMatches} top matches</p>
+          <span className="text-[9px] font-black uppercase tracking-[0.5em] text-white/20 block mb-2">Pipeline</span>
+          <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter leading-none">
+            Candidates <span className="text-white/20">Pool.</span>
+          </h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/20 mt-3">
+            {filtered.length} candidates · {topMatches} top matches
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <select
             value={selectedJob}
-            onChange={(e) => setSelectedJob(e.target.value)}
-            className="h-10 px-3 rounded-lg bg-muted border text-sm"
+            onChange={e => setSelectedJob(e.target.value)}
+            className="h-10 px-3 rounded-xl bg-white/5 border border-white/10 text-white/50 text-[10px] font-black uppercase tracking-[0.1em] focus:outline-none focus:border-white/20 transition-all"
           >
-            <option value="all">All jobs</option>
-            {jobs.map((j: any) => (
-              <option key={j.id} value={j.id}>{j.title}</option>
-            ))}
+            <option value="all">All Jobs</option>
+            {jobs.map((j: any) => <option key={j.id} value={j.id}>{j.title}</option>)}
           </select>
           <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2 bg-gradient-primary glow-primary"><Upload className="h-4 w-4" />Bulk upload</Button>
+              <Button className="gap-2 h-10 bg-white text-black hover:bg-white/90 text-[10px] font-black uppercase tracking-[0.15em] rounded-xl">
+                <Upload className="h-3.5 w-3.5" />Bulk Upload
+              </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader><DialogTitle className="font-display">Upload candidates</DialogTitle></DialogHeader>
+            <DialogContent className="max-w-lg bg-[#0d0d0d] border border-white/10 rounded-2xl text-white">
+              <DialogHeader><DialogTitle className="text-sm font-black uppercase tracking-[0.3em] text-white/60">Upload Candidates</DialogTitle></DialogHeader>
               <div
-                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragOver={e => { e.preventDefault(); setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}
-                className={cn(
-                  'rounded-2xl border-2 border-dashed p-10 text-center transition-all cursor-pointer',
-                  dragOver ? 'border-primary bg-primary/5 scale-[1.01]' : 'border-border hover:border-primary/50'
-                )}
+                className={cn('rounded-2xl border border-dashed p-12 text-center transition-all cursor-pointer mt-2',
+                  dragOver ? 'border-white/30 bg-white/5' : 'border-white/10 hover:border-white/20')}
               >
-                <div className="mx-auto h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-                  <Upload className="h-6 w-6 text-primary" />
+                <div className="mx-auto h-14 w-14 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
+                  <Upload className="h-6 w-6 text-white/30" />
                 </div>
-                <p className="font-semibold mb-1">Drop CSV or Excel here</p>
-                <p className="text-xs text-muted-foreground">CSV or Excel file with candidate data</p>
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-white/50 mb-1">Drop CSV or Excel here</p>
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/20">CSV or Excel · max 10MB</p>
                 <input type="file" accept=".csv,.xlsx,.xls" onChange={handleFileUpload} className="hidden" id="csv-upload" />
                 <label htmlFor="csv-upload">
-                  <Button variant="outline" size="sm" className="mt-4 cursor-pointer" asChild>
-                    <span>{uploading ? 'Uploading...' : 'or browse files'}</span>
-                  </Button>
+                  <span className="inline-block mt-6 px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-[0.2em] text-white/40 hover:bg-white/10 hover:text-white transition-all cursor-pointer">
+                    {uploading ? 'Uploading...' : 'Browse files'}
+                  </span>
                 </label>
               </div>
             </DialogContent>
@@ -200,72 +149,69 @@ export default function Candidates() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search candidates..." className="pl-10" />
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/20" />
+          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search candidates..." className="pl-10 h-10 bg-white/[0.02] border-white/5 text-white placeholder:text-white/20 rounded-xl text-sm focus:border-white/20 transition-all" />
         </div>
-        <div className="flex gap-1 p-1 rounded-lg bg-muted">
-          <button onClick={() => setScoreFilter('all')}
-            className={cn('px-3 py-1.5 text-xs font-medium rounded-md transition-all', scoreFilter === 'all' ? 'bg-background shadow-sm' : 'text-muted-foreground')}>
-            All
-          </button>
-          <button onClick={() => setScoreFilter('high')}
-            className={cn('px-3 py-1.5 text-xs font-medium rounded-md transition-all', scoreFilter === 'high' ? 'bg-background shadow-sm' : 'text-muted-foreground')}>
-            85%+
-          </button>
-          <button onClick={() => setScoreFilter('mid')}
-            className={cn('px-3 py-1.5 text-xs font-medium rounded-md transition-all', scoreFilter === 'mid' ? 'bg-background shadow-sm' : 'text-muted-foreground')}>
-            60-84%
-          </button>
-          <button onClick={() => setScoreFilter('low')}
-            className={cn('px-3 py-1.5 text-xs font-medium rounded-md transition-all', scoreFilter === 'low' ? 'bg-background shadow-sm' : 'text-muted-foreground')}>
-            &lt;60%
-          </button>
+        <div className="flex gap-1 p-1 rounded-xl bg-white/[0.02] border border-white/5">
+          {[['all', 'All'], ['high', '85%+'], ['mid', '60–84%'], ['low', '<60%']].map(([val, label]) => (
+            <button key={val} onClick={() => setScoreFilter(val as any)}
+              className={cn('px-4 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] rounded-lg transition-all',
+                scoreFilter === val ? 'bg-white text-black' : 'text-white/30 hover:text-white')}>
+              {label}
+            </button>
+          ))}
         </div>
-        <div className="flex gap-1 p-1 rounded-lg bg-muted ml-auto">
-          <button onClick={() => setView('card')} className={cn('p-1.5 rounded-md transition-all', view === 'card' ? 'bg-background shadow-sm' : 'text-muted-foreground')}><LayoutGrid className="h-4 w-4" /></button>
-          <button onClick={() => setView('table')} className={cn('p-1.5 rounded-md transition-all', view === 'table' ? 'bg-background shadow-sm' : 'text-muted-foreground')}><List className="h-4 w-4" /></button>
+        <div className="flex gap-1 p-1 rounded-xl bg-white/[0.02] border border-white/5 ml-auto">
+          <button onClick={() => setView('card')} className={cn('p-2 rounded-lg transition-all', view === 'card' ? 'bg-white text-black' : 'text-white/30 hover:text-white')}><LayoutGrid className="h-3.5 w-3.5" /></button>
+          <button onClick={() => setView('table')} className={cn('p-2 rounded-lg transition-all', view === 'table' ? 'bg-white text-black' : 'text-white/30 hover:text-white')}><List className="h-3.5 w-3.5" /></button>
         </div>
       </div>
 
-      {/* Card view */}
-      {view === 'card' ? (
+      {/* Empty state */}
+      {filtered.length === 0 && (
+        <div className="bg-white/[0.02] border border-white/5 rounded-2xl py-20 text-center">
+          <Users className="h-8 w-8 text-white/10 mx-auto mb-4" />
+          <p className="text-[9px] font-black uppercase tracking-[0.4em] text-white/20">No candidates found</p>
+        </div>
+      )}
+
+      {/* Card View */}
+      {view === 'card' && filtered.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map((c, i) => {
             const name = c.fullName || `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Unknown';
+            const score = c.matchScore;
             return (
-              <button
-                key={c.id} onClick={() => setSelected(c)}
-                className="group glass rounded-2xl p-4 text-left hover:scale-[1.02] hover:shadow-elegant hover:border-primary/40 transition-all duration-300 animate-fade-in-up"
-                style={{ animationDelay: `${Math.min(i * 30, 600)}ms` }}
-              >
-                <div className="flex items-start gap-3 mb-3">
+              <button key={c.id} onClick={() => setSelected(c)}
+                className="group bg-white/[0.02] border border-white/5 rounded-2xl p-5 text-left hover:bg-white/[0.05] hover:border-white/15 transition-all duration-300 animate-fade-in-up"
+                style={{ animationDelay: `${Math.min(i * 30, 600)}ms` }}>
+                <div className="flex items-start gap-3 mb-4">
                   <GradientAvatar name={name} size={36} />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{c.currentPosition || c.email}</p>
-                    <p className="text-[10px] text-muted-foreground">{c.experienceYears ?? 0} years exp</p>
+                    <p className="text-[11px] font-black uppercase tracking-[0.05em] text-white truncate">{name}</p>
+                    <p className="text-[9px] font-black uppercase tracking-[0.1em] text-white/25 truncate mt-0.5">{c.currentPosition || c.email}</p>
+                    <p className="text-[9px] font-black uppercase tracking-[0.1em] text-white/15 mt-0.5">{c.experienceYears ?? 0} yrs exp</p>
                   </div>
                 </div>
-                <div className="flex items-center justify-between mt-2">
-                  {c.matchScore != null && c.matchScore > 0 ? (
-                    <ScoreRing score={c.matchScore || 0} size={44} stroke={5} />
+                <div className="flex items-center justify-between">
+                  {score != null && score > 0 ? (
+                    <ScoreRing score={score} size={44} stroke={5} />
                   ) : (
-                    <div className="h-11 w-11 flex items-center justify-center rounded-full bg-muted">
-                      <span className="text-xs text-muted-foreground">—</span>
+                    <div className="h-11 w-11 flex items-center justify-center rounded-full bg-white/5">
+                      <span className="text-[9px] font-black text-white/20">—</span>
                     </div>
                   )}
                   <div className="text-right">
-                    <span className={cn('text-[10px] font-semibold px-2 py-1 rounded-full',
-                      c.matchScore != null && c.matchScore > 0 && c.matchScore >= 85 && 'bg-success/10 text-success',
-                      c.matchScore != null && c.matchScore > 0 && c.matchScore >= 60 && c.matchScore < 85 && 'bg-warning/10 text-warning',
-                      c.matchScore != null && c.matchScore > 0 && c.matchScore < 60 && 'bg-destructive/10 text-destructive',
-                      (c.matchScore == null || c.matchScore === 0) && 'bg-muted text-muted-foreground',
-                    )}>{c.matchScore != null && c.matchScore > 0 ? (c.status || 'Screened') : 'Not screened'}</span>
+                    <span className={cn('text-[8px] font-black uppercase tracking-[0.2em] px-2 py-1 rounded-lg',
+                      score != null && score > 0 && score >= 85 ? 'bg-white/10 text-white/50' :
+                      score != null && score > 0 && score >= 60 ? 'bg-white/5 text-white/35' :
+                      score != null && score > 0 ? 'bg-white/5 text-white/25' : 'bg-white/5 text-white/15'
+                    )}>{score != null && score > 0 ? (c.status || 'Screened') : 'Pending'}</span>
                     <div className="mt-1.5 flex flex-wrap gap-1 justify-end">
                       {(c.skills || []).slice(0, 2).map((s: any, idx: number) => {
                         const skillName = typeof s === 'string' ? s : (s.name || '');
-                        return skillName ? <span key={skillName || idx} className="text-[9px] px-1.5 py-0.5 rounded bg-muted">{skillName}</span> : null;
+                        return skillName ? <span key={skillName || idx} className="text-[8px] font-black uppercase tracking-[0.05em] px-1.5 py-0.5 rounded-md bg-white/5 text-white/25">{skillName}</span> : null;
                       })}
                     </div>
                   </div>
@@ -274,26 +220,27 @@ export default function Candidates() {
             );
           })}
         </div>
-      ) : (
-        <div className="glass rounded-2xl overflow-hidden">
+      )}
+
+      {/* Table View */}
+      {view === 'table' && filtered.length > 0 && (
+        <div className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden">
           <table className="w-full">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left p-3 text-xs font-medium">Name</th>
-                <th className="text-left p-3 text-xs font-medium">Email</th>
-                <th className="text-left p-3 text-xs font-medium">Position</th>
-                <th className="text-left p-3 text-xs font-medium">Score</th>
-                <th className="text-left p-3 text-xs font-medium">Status</th>
+            <thead>
+              <tr className="border-b border-white/5">
+                {['Name', 'Email', 'Position', 'Score', 'Status'].map(h => (
+                  <th key={h} className="text-left px-6 py-3 text-[8px] font-black uppercase tracking-[0.3em] text-white/20">{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {filtered.map((c) => (
-                <tr key={c.id} onClick={() => setSelected(c)} className="border-t border-border hover:bg-accent/40 cursor-pointer">
-                  <td className="p-3 text-sm">{c.fullName || `${c.firstName || ''} ${c.lastName || ''}`}</td>
-                  <td className="p-3 text-sm text-muted-foreground">{c.email}</td>
-                  <td className="p-3 text-sm">{c.currentPosition || '-'}</td>
-                  <td className="p-3 text-sm">{c.matchScore != null && c.matchScore > 0 ? <ScoreRing score={c.matchScore} size={32} /> : <span className="text-muted-foreground">—</span>}</td>
-                  <td className="p-3 text-sm"><span className={cn('text-[10px] px-2 py-1 rounded-full', c.matchScore != null && c.matchScore > 0 && c.matchScore >= 85 && 'bg-success/10 text-success', (c.matchScore == null || c.matchScore === 0) && 'bg-muted text-muted-foreground')}>{c.matchScore != null && c.matchScore > 0 ? (c.status || 'Screened') : 'Not screened'}</span></td>
+                <tr key={c.id} onClick={() => setSelected(c)} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] cursor-pointer transition-colors">
+                  <td className="px-6 py-4 text-[11px] font-bold text-white/70">{c.fullName || `${c.firstName || ''} ${c.lastName || ''}`}</td>
+                  <td className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.1em] text-white/25">{c.email}</td>
+                  <td className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.1em] text-white/40">{c.currentPosition || '—'}</td>
+                  <td className="px-6 py-4">{c.matchScore != null && c.matchScore > 0 ? <ScoreRing score={c.matchScore} size={32} /> : <span className="text-white/20 text-xs">—</span>}</td>
+                  <td className="px-6 py-4"><span className="text-[8px] font-black uppercase tracking-[0.2em] px-2 py-1 rounded-lg bg-white/5 text-white/30">{c.matchScore != null && c.matchScore > 0 ? (c.status || 'Screened') : 'Pending'}</span></td>
                 </tr>
               ))}
             </tbody>
@@ -301,62 +248,75 @@ export default function Candidates() {
         </div>
       )}
 
-      {/* Candidate detail sheet */}
-      <Sheet open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
-        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+      {/* Detail Sheet */}
+      <Sheet open={!!selected} onOpenChange={open => !open && setSelected(null)}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto bg-[#0d0d0d] border-l border-white/10 text-white">
           {selected && (
-            <div className="space-y-6">
+            <div className="space-y-8 pt-6">
               <div className="flex items-start gap-4">
-                <GradientAvatar name={selected.fullName || `${selected.firstName || ''} ${selected.lastName || ''}`} size={64} />
+                <GradientAvatar name={selected.fullName || `${selected.firstName || ''} ${selected.lastName || ''}`} size={56} />
                 <div>
-                  <h2 className="text-xl font-semibold">{selected.fullName || `${selected.firstName || ''} ${selected.lastName || ''}`}</h2>
-                  <p className="text-muted-foreground">{selected.currentPosition || selected.email}</p>
+                  <h2 className="text-xl font-black text-white tracking-tight">{selected.fullName || `${selected.firstName || ''} ${selected.lastName || ''}`}</h2>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 mt-1">{selected.currentPosition || selected.email}</p>
                 </div>
               </div>
-              <div className="flex gap-4">
+
+              <div className="flex gap-6 items-center">
                 {selected.matchScore != null && selected.matchScore > 0 ? (
                   <ScoreRing score={selected.matchScore} size={80} />
                 ) : (
-                  <div className="h-20 w-20 flex items-center justify-center rounded-full bg-muted">
-                    <span className="text-muted-foreground">Not screened</span>
+                  <div className="h-20 w-20 flex items-center justify-center rounded-2xl bg-white/5 border border-white/10">
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white/20">N/A</span>
                   </div>
                 )}
-                <div className="flex-1">
-                  <p className="text-sm font-medium mb-2">Experience</p>
-                  <p className="text-sm text-muted-foreground">{selected.experienceYears || 0} years</p>
-                  <p className="text-sm font-medium mt-3 mb-1">Education</p>
-                  <p className="text-sm text-muted-foreground">{selected.educationLevel || 'Not specified'}</p>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/20">Experience</p>
+                    <p className="text-[11px] font-bold text-white/60 mt-0.5">{selected.experienceYears || 0} years</p>
+                  </div>
+                  <div>
+                    <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/20">Education</p>
+                    <p className="text-[11px] font-bold text-white/60 mt-0.5">{selected.educationLevel || 'Not specified'}</p>
+                  </div>
                 </div>
               </div>
+
               {(selected.strengths?.length || 0) > 0 && (
                 <div>
-                  <p className="text-sm font-medium mb-2">Strengths</p>
+                  <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/20 mb-3">Strengths</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {selected.strengths?.map((s: string) => (
-                      <span key={s} className="text-xs px-2 py-1 rounded-full bg-success/10 text-success">{s}</span>
-                    ))}
+                    {selected.strengths?.map(s => <span key={s} className="text-[9px] font-black uppercase tracking-[0.1em] px-2.5 py-1 rounded-lg bg-white/10 text-white/50">{s}</span>)}
                   </div>
                 </div>
               )}
+
               {(selected.gaps?.length || 0) > 0 && (
                 <div>
-                  <p className="text-sm font-medium mb-2">Areas for improvement</p>
+                  <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/20 mb-3">Improvement Areas</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {selected.gaps?.map((s: string) => (
-                      <span key={s} className="text-xs px-2 py-1 rounded-full bg-warning/10 text-warning">{s}</span>
-                    ))}
+                    {selected.gaps?.map(s => <span key={s} className="text-[9px] font-black uppercase tracking-[0.1em] px-2.5 py-1 rounded-lg bg-white/5 text-white/30">{s}</span>)}
                   </div>
                 </div>
               )}
-              <div>
-                <p className="text-sm font-medium mb-2">Skills</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {(selected.skills || []).map((s, i) => {
-                    const name = typeof s === 'string' ? s : (s.name || '');
-                    return <span key={name || i} className="text-xs px-2 py-1 rounded-full bg-muted">{name}</span>;
-                  })}
+
+              {(selected.skills?.length || 0) > 0 && (
+                <div>
+                  <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/20 mb-3">Skills</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(selected.skills || []).map((s, i) => {
+                      const name = typeof s === 'string' ? s : (s.name || '');
+                      return <span key={name || i} className="text-[9px] font-black uppercase tracking-[0.1em] px-2.5 py-1 rounded-lg bg-white/5 text-white/40">{name}</span>;
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {selected.recommendation && (
+                <div>
+                  <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/20 mb-2">AI Recommendation</p>
+                  <p className="text-[11px] text-white/40 leading-relaxed font-medium">{selected.recommendation}</p>
+                </div>
+              )}
             </div>
           )}
         </SheetContent>

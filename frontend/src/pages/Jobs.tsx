@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, MapPin, Users, Clock, Search, Loader2, Trash2, Briefcase } from 'lucide-react';
+import { Plus, MapPin, Users, Clock, Search, Loader2, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { jobsApi, activityApi } from '@/lib/api';
@@ -21,33 +21,21 @@ export default function Jobs() {
   const [open, setOpen] = useState(false);
   const [skills, setSkills] = useState<string[]>([]);
   const [skillInput, setSkillInput] = useState('');
-  const [formData, setFormData] = useState({ 
-    title: '', 
-    department: '', 
-    location: '', 
-    type: 'Full-time', 
-    description: '',
-    experienceYears: 0
-  });
+  const [formData, setFormData] = useState({ title: '', department: '', location: '', type: 'Full-time', description: '', experienceYears: 0 });
 
   useEffect(() => {
     jobsApi.getAll()
       .then(async (res: any) => {
         const jobsArray = Array.isArray(res) ? res : (res?.data || []);
-        
-        // Fetch actual candidate counts for each job
         const jobsWithCounts = await Promise.all(
           jobsArray.map(async (j: any) => {
             try {
               const cands: any = await jobsApi.getCandidates(j.id);
               const count = Array.isArray(cands) ? cands.length : (cands?.data?.length || 0);
               return { ...j, _count: { candidates: count } };
-            } catch {
-              return { ...j, _count: { candidates: 0 } };
-            }
+            } catch { return { ...j, _count: { candidates: 0 } }; }
           })
         );
-        
         setJobs(jobsWithCounts);
       })
       .catch(() => setJobs([]))
@@ -55,10 +43,12 @@ export default function Jobs() {
   }, []);
 
   const filtered = jobs.filter(j => {
+    const q = search.toLowerCase();
+    const matchesSearch = !q || j.title?.toLowerCase().includes(q);
     const jobStatus = j.status?.toLowerCase() || 'open';
-    if (filter === 'All') return true;
-    if (filter === 'Active') return jobStatus === 'open' || jobStatus === 'screening';
-    return jobStatus === filter.toLowerCase();
+    if (filter === 'All') return matchesSearch;
+    if (filter === 'Active') return matchesSearch && (jobStatus === 'open' || jobStatus === 'screening');
+    return matchesSearch && jobStatus === filter.toLowerCase();
   });
 
   const addSkill = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -69,172 +59,113 @@ export default function Jobs() {
     }
   };
 
-const handleCreate = async () => {
-    const jobData = {
-      title: formData.title,
-      description: formData.description || '',
-      requiredSkills: skills,
-      location: formData.location || 'Remote',
-      experienceYears: formData.experienceYears || 0,
-    };
-    
+  const handleCreate = async () => {
     try {
-      const created: any = await jobsApi.create(jobData);
+      const created: any = await jobsApi.create({ title: formData.title, description: formData.description || '', requiredSkills: skills, location: formData.location || 'Remote', experienceYears: formData.experienceYears || 0 });
       const jobId = created?.id || (created?.data as any)?.id;
-      activityApi.create('job_created', jobId || '', `Created job "${formData.title}" with ${skills.length} skills`).catch(() => {});
+      activityApi.create('job_created', jobId || '', `Created job "${formData.title}"`).catch(() => {});
       toast.success('Job posted!');
-      
-      // Refresh jobs list with candidate counts
       const updated: any = await jobsApi.getAll();
-      const jobsArray = Array.isArray(updated) ? updated : (updated?.data || []);
-      
-      // Fetch counts for all jobs
-      const jobsWithCounts = await Promise.all(
-        jobsArray.map(async (j: any) => {
-          try {
-            const cands: any = await jobsApi.getCandidates(j.id);
-            const count = Array.isArray(cands) ? cands.length : (cands?.data?.length || 0);
-            return { ...j, _count: { candidates: count } };
-          } catch {
-            return { ...j, _count: { candidates: 0 } };
-          }
-        })
-      );
-      
-      setJobs(jobsWithCounts);
-      
-      setOpen(false);
-      setStep(1);
-      setSkills([]);
-             setFormData({ title: '', department: '', location: '', type: 'Full-time', description: '', experienceYears: 0 });
-    } catch (err: any) {
-      toast.error(String(err.message || err));
-    }
+      const arr = Array.isArray(updated) ? updated : (updated?.data || []);
+      const withCounts = await Promise.all(arr.map(async (j: any) => {
+        try { const c: any = await jobsApi.getCandidates(j.id); return { ...j, _count: { candidates: Array.isArray(c) ? c.length : (c?.data?.length || 0) } }; }
+        catch { return { ...j, _count: { candidates: 0 } }; }
+      }));
+      setJobs(withCounts);
+      setOpen(false); setStep(1); setSkills([]);
+      setFormData({ title: '', department: '', location: '', type: 'Full-time', description: '', experienceYears: 0 });
+    } catch (err: any) { toast.error(String(err.message || err)); }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this job?')) return;
-    try {
-      await jobsApi.delete(id);
-      setJobs(jobs.filter(j => j.id !== id));
-      toast.success('Job deleted');
-    } catch (err: any) {
-      toast.error(err.message);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <Loader2 className="h-6 w-6 animate-spin text-white/30" />
+    </div>
+  );
 
   return (
-    <div className="space-y-6 max-w-[1600px] mx-auto">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="space-y-8 max-w-[1600px] mx-auto">
+      {/* Header */}
+      <div className="flex flex-wrap items-end justify-between gap-4 animate-fade-in-up">
         <div>
-          <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight">Jobs</h1>
-          <p className="text-muted-foreground mt-1">Manage your open positions</p>
+          <span className="text-[9px] font-black uppercase tracking-[0.5em] text-white/20 block mb-2">Management</span>
+          <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter leading-none">
+            Jobs <span className="text-white/20">Board.</span>
+          </h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/20 mt-3">Manage your open positions</p>
         </div>
+
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2 bg-gradient-primary text-primary-foreground glow-primary">
-              <Plus className="h-4 w-4" />Post New Job
+            <Button className="gap-2 h-10 bg-white text-black hover:bg-white/90 text-[10px] font-black uppercase tracking-[0.15em] rounded-xl">
+              <Plus className="h-3.5 w-3.5" />Post New Job
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-xl">
+          <DialogContent className="max-w-xl bg-[#0d0d0d] border border-white/10 rounded-2xl text-white">
             <DialogHeader>
-              <DialogTitle className="font-display">Create new job</DialogTitle>
+              <DialogTitle className="text-sm font-black uppercase tracking-[0.3em] text-white/60">New Position</DialogTitle>
               <div className="flex items-center gap-2 mt-4">
                 {[1, 2, 3].map(s => (
                   <div key={s} className="flex items-center flex-1">
-                    <div className={cn('h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all',
-                      step >= s ? 'bg-gradient-primary text-primary-foreground' : 'bg-muted text-muted-foreground')}>
-                      {s}
-                    </div>
-                    {s < 3 && <div className={cn('flex-1 h-0.5 mx-2 transition-all', step > s ? 'bg-primary' : 'bg-muted')} />}
+                    <div className={cn('h-7 w-7 rounded-lg flex items-center justify-center text-[10px] font-black uppercase tracking-wider transition-all', step >= s ? 'bg-white text-black' : 'bg-white/5 text-white/20')}>{s}</div>
+                    {s < 3 && <div className={cn('flex-1 h-[1px] mx-2 transition-all', step > s ? 'bg-white/30' : 'bg-white/5')} />}
                   </div>
                 ))}
               </div>
             </DialogHeader>
 
-<div className="space-y-4 mt-2 animate-fade-in" key={step}>
+            <div className="space-y-4 mt-2" key={step}>
               {step === 1 && (
                 <>
-                  <div className="space-y-1.5"><Label>Job title</Label>
-                    <Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="Senior Backend Engineer" />
-                  </div>
+                  <div className="space-y-2"><Label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/30">Job Title</Label><Input value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="Senior Backend Engineer" className="bg-white/5 border-white/10 text-white placeholder:text-white/20 rounded-xl h-11" /></div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5"><Label>Department</Label>
-                      <Input value={formData.department} onChange={(e) => setFormData({ ...formData, department: e.target.value })} placeholder="Engineering" />
-                    </div>
-                    <div className="space-y-1.5"><Label>Location</Label>
-                      <Input value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} placeholder="Remote" />
-                    </div>
+                    <div className="space-y-2"><Label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/30">Department</Label><Input value={formData.department} onChange={e => setFormData({ ...formData, department: e.target.value })} placeholder="Engineering" className="bg-white/5 border-white/10 text-white placeholder:text-white/20 rounded-xl h-11" /></div>
+                    <div className="space-y-2"><Label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/30">Location</Label><Input value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} placeholder="Remote" className="bg-white/5 border-white/10 text-white placeholder:text-white/20 rounded-xl h-11" /></div>
                   </div>
                 </>
               )}
               {step === 2 && (
                 <>
-                  <div className="space-y-1.5"><Label>Description</Label>
-                    <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={4} placeholder="Describe the role..." />
-                  </div>
+                  <div className="space-y-2"><Label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/30">Description</Label><Textarea value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} rows={4} placeholder="Describe the role..." className="bg-white/5 border-white/10 text-white placeholder:text-white/20 rounded-xl resize-none" /></div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label>Required skills (press Enter)</Label>
-                      <Input value={skillInput} onChange={(e) => setSkillInput(e.target.value)} onKeyDown={addSkill} placeholder="Type a skill..." />
+                    <div className="space-y-2">
+                      <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/30">Required Skills (press Enter)</Label>
+                      <Input value={skillInput} onChange={e => setSkillInput(e.target.value)} onKeyDown={addSkill} placeholder="Type a skill..." className="bg-white/5 border-white/10 text-white placeholder:text-white/20 rounded-xl h-11" />
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {skills.map(s => (
-                          <span key={s} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium animate-scale-in">
-                            {s}
-                            <button onClick={() => setSkills(skills.filter(x => x !== s))} className="hover:text-destructive">×</button>
+                          <span key={s} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 text-white text-[10px] font-black uppercase tracking-wider">
+                            {s}<button onClick={() => setSkills(skills.filter(x => x !== s))} className="hover:text-white/50 ml-1">×</button>
                           </span>
                         ))}
                       </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <Label>Minimum experience (years)</Label>
-                      <div className="relative">
-                        <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          type="number"
-                          min="0"
-                          max="30"
-                          value={formData.experienceYears}
-                          onChange={(e) => setFormData({ ...formData, experienceYears: parseInt(e.target.value) || 0 })}
-                          placeholder="0"
-                          className="pl-10"
-                        />
-                      </div>
-                      <p className="text-[10px] text-muted-foreground">Years of relevant experience required</p>
+                    <div className="space-y-2">
+                      <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/30">Min. Experience (yrs)</Label>
+                      <Input type="number" min="0" max="30" value={formData.experienceYears} onChange={e => setFormData({ ...formData, experienceYears: parseInt(e.target.value) || 0 })} placeholder="0" className="bg-white/5 border-white/10 text-white placeholder:text-white/20 rounded-xl h-11" />
                     </div>
                   </div>
                 </>
               )}
-               {step === 3 && (
-                <div className="rounded-xl bg-accent/40 p-4 text-sm space-y-2">
-                  <p className="font-semibold">Review your job posting</p>
-                  <p className="text-muted-foreground">Make sure everything looks right before publishing.</p>
-                  <div className="pt-2 space-y-1">
-                    <div><span className="font-medium">{formData.title || 'Untitled'}</span></div>
-                    <div><span className="font-medium">{skills.length}</span> required skills</div>
-                    <div><span className="font-medium">{formData.experienceYears || 0}</span> years minimum experience</div>
-                    <div><span className="font-medium">{formData.location || 'Remote'}</span> · {formData.type || 'Full-time'}</div>
+              {step === 3 && (
+                <div className="rounded-2xl bg-white/5 border border-white/10 p-5 space-y-3">
+                  <p className="text-[9px] font-black uppercase tracking-[0.4em] text-white/30">Review posting</p>
+                  <p className="text-2xl font-black text-white tracking-tight">{formData.title || 'Untitled'}</p>
+                  <div className="space-y-1.5 pt-2">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">{skills.length} required skills · {formData.experienceYears || 0}+ years exp</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">{formData.location || 'Remote'} · {formData.type || 'Full-time'}</p>
                   </div>
                 </div>
               )}
             </div>
 
             <div className="flex justify-between mt-4">
-              <Button variant="ghost" onClick={() => step > 1 ? setStep(step - 1) : setOpen(false)}>
+              <Button variant="ghost" onClick={() => step > 1 ? setStep(step - 1) : setOpen(false)} className="text-white/30 hover:text-white hover:bg-white/5 text-[10px] font-black uppercase tracking-wider rounded-xl">
                 {step > 1 ? 'Back' : 'Cancel'}
               </Button>
               {step < 3 ? (
-                <Button onClick={() => setStep(step + 1)} className="bg-gradient-primary">Next</Button>
+                <Button onClick={() => setStep(step + 1)} className="bg-white text-black hover:bg-white/90 text-[10px] font-black uppercase tracking-[0.15em] rounded-xl">Next</Button>
               ) : (
-                <Button onClick={handleCreate} className="bg-gradient-primary glow-primary">Publish job</Button>
+                <Button onClick={handleCreate} className="bg-white text-black hover:bg-white/90 text-[10px] font-black uppercase tracking-[0.15em] rounded-xl">Publish Job</Button>
               )}
             </div>
           </DialogContent>
@@ -243,55 +174,55 @@ const handleCreate = async () => {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search jobs..." className="pl-10" />
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/20" />
+          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search positions..." className="pl-10 h-10 bg-white/[0.02] border-white/5 text-white placeholder:text-white/20 rounded-xl text-sm focus:border-white/20 transition-all" />
         </div>
-        <div className="flex gap-1 p-1 rounded-lg bg-muted">
+        <div className="flex gap-1 p-1 rounded-xl bg-white/[0.02] border border-white/5">
           {(['All', 'Active', 'Closed', 'Draft'] as const).map(f => (
-            <button
-              key={f} onClick={() => setFilter(f)}
-              className={cn('px-3 py-1.5 text-xs font-medium rounded-md transition-all',
-                filter === f ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground')}
-            >{f}</button>
+            <button key={f} onClick={() => setFilter(f)}
+              className={cn('px-4 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] rounded-lg transition-all', filter === f ? 'bg-white text-black' : 'text-white/30 hover:text-white')}>
+              {f}
+            </button>
           ))}
         </div>
       </div>
 
-      {/* Job grid */}
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Job Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.length === 0 ? (
-          <div className="col-span-full text-center py-12 text-muted-foreground">
-            No jobs found. Create your first job!
+          <div className="col-span-full bg-white/[0.02] border border-white/5 rounded-2xl py-20 text-center">
+            <Briefcase className="h-8 w-8 text-white/10 mx-auto mb-4" />
+            <p className="text-[9px] font-black uppercase tracking-[0.4em] text-white/20">No positions found</p>
           </div>
         ) : filtered.map((job, i) => (
           <Link
             key={job.id} to={`/jobs/${job.id}`}
-            className="group glass rounded-2xl p-5 hover:scale-[1.02] hover:shadow-elegant hover:border-primary/40 transition-all duration-300 animate-fade-in-up"
+            className="group bg-white/[0.02] border border-white/5 rounded-2xl p-5 hover:bg-white/[0.05] hover:border-white/15 transition-all duration-300 animate-fade-in-up"
             style={{ animationDelay: `${i * 60}ms` }}
           >
-            <div className="flex items-start justify-between mb-3">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-lg">💼</div>
-              <span className={cn('text-[10px] font-semibold px-2 py-1 rounded-full',
-                job.status === 'open' && 'bg-success/10 text-success',
-                job.status === 'screening' && 'bg-warning/10 text-warning',
-                job.status === 'closed' && 'bg-muted text-muted-foreground',
+            <div className="flex items-start justify-between mb-4">
+              <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center text-lg group-hover:bg-white/10 transition-colors">💼</div>
+              <span className={cn('text-[8px] font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded-lg',
+                job.status === 'open' ? 'bg-white/10 text-white/50' :
+                job.status === 'screening' ? 'bg-white/10 text-white/50' :
+                'bg-white/5 text-white/25'
               )}>{job.status || 'open'}</span>
             </div>
-            <h3 className="font-semibold text-base mb-1 group-hover:text-primary transition-colors">{job.title}</h3>
-            <p className="text-xs text-muted-foreground mb-4">
-              {(job.department || 'Engineering')} · {(job.type || 'Full-time')}
-              {job.experienceYears != null && ` · ${job.experienceYears}+ years`}
+            <h3 className="font-black text-white tracking-tight text-base mb-1 group-hover:text-white transition-colors leading-tight">{job.title}</h3>
+            <p className="text-[10px] font-black uppercase tracking-[0.15em] text-white/25 mb-4">
+              {job.department || 'Engineering'} · {job.type || 'Full-time'}
+              {job.experienceYears != null && ` · ${job.experienceYears}+ yrs`}
             </p>
             <div className="flex flex-wrap gap-1.5 mb-4">
-              {((job.requiredSkills || job.skills) || []).slice(0, 3).map(s => (
-                <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{s}</span>
+              {((job.requiredSkills || job.skills) || []).slice(0, 3).map((s: string) => (
+                <span key={s} className="text-[9px] font-black uppercase tracking-[0.1em] px-2 py-0.5 rounded-lg bg-white/5 text-white/30">{s}</span>
               ))}
             </div>
-            <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-3">
-              <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{job.location || 'Remote'}</span>
-              <span className="flex items-center gap-1"><Users className="h-3 w-3" />{job._count?.candidates || 0}</span>
-              <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{job.createdAt ? new Date(job.createdAt).toLocaleDateString() : 'Recently'}</span>
+            <div className="flex items-center justify-between border-t border-white/5 pt-3">
+              <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.1em] text-white/20"><MapPin className="h-2.5 w-2.5" />{job.location || 'Remote'}</span>
+              <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.1em] text-white/20"><Users className="h-2.5 w-2.5" />{job._count?.candidates || 0}</span>
+              <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.1em] text-white/20"><Clock className="h-2.5 w-2.5" />{job.createdAt ? new Date(job.createdAt).toLocaleDateString() : 'Recently'}</span>
             </div>
           </Link>
         ))}

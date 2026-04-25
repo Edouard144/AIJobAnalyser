@@ -13,12 +13,11 @@ export const LanguageToggle = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="rounded-full gap-2 px-3 hover:bg-accent">
-          <Globe className="h-4 w-4" />
-          <span className="text-base leading-none">{current.flag}</span>
+        <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/5 text-white/40 hover:text-white transition-colors">
+          <Globe className="h-5 w-5" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48 animate-scale-in">
+      <DropdownMenuContent side="right" align="start" sideOffset={20} className="w-48 animate-scale-in">
         {LANGUAGES.map(lang => (
           <DropdownMenuItem
             key={lang.code}

@@ -1,3 +1,4 @@
+import React from 'react';
 import { cn } from '@/lib/utils';
 
 // Small keyboard-shortcut chip. e.g. <Kbd>⌘</Kbd><Kbd>K</Kbd>

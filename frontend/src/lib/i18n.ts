@@ -5,11 +5,11 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 const resources = {
   en: {
     translation: {
-      brand: 'AIRECRUIT',
-      tagline: 'Hire Smarter. Screen Faster.',
+      brand: 'UMURAVA',
+      tagline: 'Precision Talent Acquisition.',
       nav: {
         dashboard: 'Dashboard', jobs: 'Jobs', candidates: 'Candidates', screenings: 'Screenings',
-        reports: 'Reports', insights: 'Insights', aiActivity: 'AI Activity',
+        reports: 'Reports', insights: 'Precision Match', aiActivity: 'Audit Log',
         account: 'Account', team: 'Team', billing: 'Billing', help: 'Help',
         main: 'MAIN', analytics: 'ANALYTICS', settings: 'SETTINGS',
       },
@@ -38,10 +38,10 @@ const resources = {
   },
   fr: {
     translation: {
-      brand: 'AIRECRUIT', tagline: 'Recrutez intelligemment. Filtrez rapidement.',
+      brand: 'UMURAVA', tagline: 'Acquisition de talents de précision.',
       nav: {
         dashboard: 'Tableau de bord', jobs: 'Offres', candidates: 'Candidats', screenings: 'Sélections',
-        reports: 'Rapports', insights: 'Analyses', aiActivity: 'Activité IA',
+        reports: 'Rapports', insights: 'Match de précision', aiActivity: 'Journal d\'audit',
         account: 'Compte', team: 'Équipe', billing: 'Facturation', help: 'Aide',
         main: 'PRINCIPAL', analytics: 'ANALYTIQUE', settings: 'PARAMÈTRES',
       },
@@ -70,10 +70,10 @@ const resources = {
   },
   rw: {
     translation: {
-      brand: 'AIRECRUIT', tagline: 'Shaka Abakozi Vuba Kandi Neza.',
+      brand: 'UMURAVA', tagline: 'Guhitamo Abakozi b\'Indashyikirwa.',
       nav: {
         dashboard: 'Imbonerahamwe', jobs: 'Akazi', candidates: 'Abakandida', screenings: 'Igenzura',
-        reports: 'Raporo', insights: 'Isesengura', aiActivity: 'Ibikorwa bya AI',
+        reports: 'Raporo', insights: 'Igereranya ry\'Amanota', aiActivity: 'Raporo y\'Igenzura',
         account: 'Konti', team: 'Itsinda', billing: 'Kwishyura', help: 'Ubufasha',
         main: 'IBIKURU', analytics: 'ISESENGURA', settings: 'IGENAMITERERE',
       },
@@ -102,10 +102,10 @@ const resources = {
   },
   sw: {
     translation: {
-      brand: 'AIRECRUIT', tagline: 'Ajiri kwa Akili. Chuja Haraka.',
+      brand: 'UMURAVA', tagline: 'Upataji wa Vipaji kwa Usahihi.',
       nav: {
         dashboard: 'Dashibodi', jobs: 'Kazi', candidates: 'Wagombea', screenings: 'Uchunguzi',
-        reports: 'Ripoti', insights: 'Maarifa', aiActivity: 'Shughuli za AI',
+        reports: 'Ripoti', insights: 'Ulinganisho Sahihi', aiActivity: 'Kumbukumbu za Ukaguzi',
         account: 'Akaunti', team: 'Timu', billing: 'Malipo', help: 'Msaada',
         main: 'KUU', analytics: 'UCHANGANUZI', settings: 'MIPANGILIO',
       },

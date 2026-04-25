@@ -1,54 +1,49 @@
 import { ReactNode } from 'react';
-import { Sparkles } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LanguageToggle } from '@/components/LanguageToggle';
 
-export const AuthLayout = ({ children, side }: { children: ReactNode; side?: ReactNode }) => {
+export const AuthLayout = ({ children }: { children: ReactNode }) => {
   return (
-    <div className="min-h-screen flex bg-background relative overflow-hidden">
-      {/* Animated mesh gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-secondary/30" />
-
-      {/* Floating orbs */}
-      <div className="orb h-[600px] w-[600px] bg-primary/30 -top-48 -left-48" />
-      <div className="orb h-[500px] w-[500px] bg-primary-glow/25 top-1/3 -right-40" style={{ animationDelay: '4s' }} />
-      <div className="orb h-[400px] w-[400px] bg-primary/20 -bottom-32 left-1/4" style={{ animationDelay: '8s' }} />
-
-      {/* Subtle grid overlay */}
-      <div
-        className="absolute inset-0 opacity-[0.04] pointer-events-none"
-        style={{
-          backgroundImage: `linear-gradient(hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)`,
-          backgroundSize: '48px 48px',
-          maskImage: 'radial-gradient(ellipse at center, black 30%, transparent 75%)',
-        }}
-      />
-
-      {/* Top controls */}
-      <div className="absolute top-6 right-6 z-20 flex items-center gap-1">
-        <LanguageToggle />
-        <ThemeToggle />
-      </div>
-
-      {/* Brand */}
-      <div className="absolute top-6 left-6 z-20 flex items-center gap-2">
-        <div className="h-9 w-9 rounded-xl bg-gradient-primary flex items-center justify-center glow-primary">
-          <Sparkles className="h-5 w-5 text-primary-foreground" />
+    <div className="min-h-screen bg-[#080808] text-white flex font-sans selection:bg-white selection:text-black overflow-hidden relative">
+      
+      {/* ========== LEFT SIDEBAR (Consistent with Landing) ========== */}
+      <aside className="fixed left-0 top-0 bottom-0 w-20 border-r border-white/5 flex flex-col items-center py-8 shrink-0 bg-[#080808] z-50">
+        <div className="flex flex-col items-center">
+          <Menu className="h-6 w-6 text-white/40 cursor-pointer hover:text-white transition-colors" />
         </div>
-        <span className="font-display font-bold text-lg tracking-tight">
-          AI<span className="text-gradient">RECRUIT</span>
-        </span>
-      </div>
 
-      {side && (
-        <div className="hidden lg:flex flex-1 relative items-center justify-center p-12 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
-          {side}
+        <div className="flex-1 flex flex-col justify-end gap-8 pb-10">
+          <ThemeToggle />
+          <LanguageToggle />
         </div>
-      )}
+      </aside>
 
-      <div className="flex-1 flex items-center justify-center p-6 relative z-10">
-        {children}
-      </div>
+      {/* ========== MAIN CONTENT AREA ========== */}
+      <main className="flex-1 ml-20 relative flex items-center justify-center min-h-screen px-6 overflow-hidden">
+        
+        {/* Cinematic Background Image */}
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          <img 
+            src="/images/hero-moody.png" 
+            alt="Moody Background" 
+            className="w-full h-full object-cover grayscale brightness-[0.4] scale-110"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#080808] via-transparent to-[#080808] opacity-80" />
+          <div className="absolute inset-0 bg-radial-at-c from-white/[0.03] to-transparent" />
+        </div>
+
+        {/* Global Brand Mark */}
+        <div className="absolute top-12 left-12 z-20">
+          <span className="text-xl font-black tracking-[0.2em] uppercase text-white">
+            UMU<span className="text-white/40 font-bold">RAVA</span>
+          </span>
+        </div>
+
+        <div className="relative z-10 w-full max-w-lg">
+          {children}
+        </div>
+      </main>
     </div>
   );
 };
